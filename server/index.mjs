@@ -1,7 +1,6 @@
 import cors from 'cors';
 import express from 'express';
 import session from 'express-session';
-import { check, validationResult } from 'express-validator';
 import morgan from 'morgan';
 import passport from 'passport';
 import LocalStrategy from 'passport-local';
@@ -23,7 +22,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 passport.use(new LocalStrategy(async function verify(username, password, done) {
-  const user = await dao.getUserByUsername(username, password);
+  const user = await dao.getUser(username, password);
   if (!user) return done(null, false, { message: 'Incorrect username or password' });
   return done(null, {username: user.username, email: user.email});
 }));
@@ -57,38 +56,42 @@ app.use('/images', express.static('public/images'));
 
 // AUTENTICAZIONE UTENTE
 
-app.post('/api/session',
-[
-  check('username').isString().isLength({ min: 3 }).matches(/^[a-zA-Z0-9_]+$/),
-  check('password').isString().isLength({ min: 8 }).matches(/^(?=.*[A-Za-z])(?=.*\d).+$/)
-],
-(req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(422).json({errors: errors.array()});
-  }
-  next();
-},
-passport.authenticate('local'),
-function(req, res) {
+app.post('/api/session', passport.authenticate('local'), function(req, res) {
   return res.status(201).json(req.user);
 });
 
-app.get('/api/session/current',
-(req, res) => {
+app.get('/api/session/current', (req, res) => {
   if(req.isAuthenticated()) {
-    res.json(req.user);}
-  else
+    res.json(req.user);
+  } else {
     res.status(401).json({error: 'Not authenticated'});
+  }
 });
 
-app.delete('/api/session/current',
-(req, res) => {
+app.delete('/api/session/current', (req, res) => {
   req.logout(() => {
     res.end();
   });
 });
 
+app.get('/api/game', async (req, res) => {
+  try {
+    const logged = req.user ? 1 : 0;
+    const phrase = await dao.getRandomPhrase(logged);
+    res.json(phrase);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/letters', async (req, res) => {
+  try {
+    const letters = await dao.getAllLetters();
+    res.json(letters);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
