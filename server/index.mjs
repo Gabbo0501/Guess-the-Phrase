@@ -77,8 +77,8 @@ app.delete('/api/session/current', (req, res) => {
 app.get('/api/game', async (req, res) => {
   try {
     const logged = req.user ? 1 : 0;
-    const phrase = await dao.getRandomPhrase(logged);
-    res.json(phrase);
+    const game = await dao.getRandomPhrase(logged);
+    res.json(game);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
