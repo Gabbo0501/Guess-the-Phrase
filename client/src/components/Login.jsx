@@ -32,7 +32,7 @@ function AuthForm(props) {
 
     return (
         <>
-            <Form className="auth-form bg-red" action={loginAction}>
+            <Form className="auth-form bg-red p-5 rounded" action={loginAction}>
                 <h2 className="righteous-font display-6 mb-5 rounded">Log In</h2>
                 {inputError && (
                     <Alert variant="warning">{inputError}</Alert>

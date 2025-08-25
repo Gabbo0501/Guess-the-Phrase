@@ -10,7 +10,7 @@ import { Layout } from './components/Layout.jsx';
 import { HomePage } from './components/Home.jsx';
 import { LoginPage } from './components/Login.jsx';
 import { NotFound } from './components/NotFound.jsx';
-//import { GamePage } from './components/Game.jsx';
+import { GamePage } from './components/Game.jsx';
 
 
 function App() {
@@ -71,13 +71,13 @@ function App() {
             setLoading={setLoading}
             handleLogout={handleLogout}
           />} />
-          {/*<Route path="game" element={<GamePage
+          <Route path="game" element={<GamePage
             user={user}
             loading={loading}
             setLoading={setLoading}
             onError={onError}
             setError={setError}
-          />} />*/}
+          />} />
           <Route path="login" element={<LoginPage handleLogin={handleLogin}/>} />
           <Route path="*" element={<NotFound />} />
         </Route>

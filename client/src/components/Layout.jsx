@@ -12,7 +12,6 @@ function FilmBar() {
   );
 }
 
-
 function Layout(props) {
     const setError = props.setError;
     const setLoading = props.setLoading;
@@ -22,7 +21,9 @@ function Layout(props) {
             <NavbarCustom setError={setError} setLoading={setLoading}/>
             <div style={{ display: 'flex'}}>
                 <FilmBar />
-                <Outlet />
+                <div className='outlet-container'>
+                    <Outlet />
+                </div>
                 <FilmBar />
             </div>
             <Footer />

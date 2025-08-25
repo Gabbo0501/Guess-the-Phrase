@@ -66,15 +66,19 @@ html, body, #root {
 }
 
 .auth-form {
-  width: 800px;
+  width: 60%;
   margin: 0 auto;
 }
 
 .bg-red {
   background-color: #831e26;
   color: white;
-  padding: 4rem;
-  border-radius: 0.5rem;
+}
+
+.outlet-container{
+  flex: 1;
+  background: #fff;
+  min-height: 100%;
 }
 
 .bordered {
@@ -85,4 +89,92 @@ html, body, #root {
   font-family: "Righteous", sans-serif;
   font-weight: 400;
   font-style: normal;
+}
+
+.tastiera {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.letter-btn {
+  min-width: 70px;
+  min-height: 70px;
+  border-radius: 12px;
+  letter-spacing: 1.5px;
+  font-size: 1.5rem;
+  margin: 0.5rem;
+  box-shadow: 0 0 8px rgba(33, 37, 41, 0.12);
+  background-color: #fff;
+  color: #212529;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #dee2e6;
+}
+
+.letter-btn.vowel {
+  background-color: #fffbe6;
+  border-color: #ffc107;
+}
+
+.letter-btn.disabled {
+  border: 2px solid #dee2e6;
+  background-color: #878282;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.letter-btn:hover:not(:disabled):not(.guessed) {
+  background-color: #831e26;
+  color: #fff;
+  transform: scale(1.08);
+  border-color: #ffc107;
+}
+
+.coin-badge {
+  background: radial-gradient(circle at 30% 30%, #ffe066 70%, #ffc107 100%);
+  color: #7a5a00;
+  border-radius: 50%;
+  min-width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.75rem;
+  box-shadow: 0 0 6px #ffc107;
+  border: 2px solid #fffbe6;
+}
+
+.phrase-viewer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem 1rem;
+}
+
+.phrase-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 1.75rem;
+  box-shadow: 0 0 6px #21252922;
+}
+
+.phrase-letter.revealed {
+  background: #1fa463;
+  color: #fff;
+}
+
+.phrase-space {
+  width: 40px;
+  height: 40px;
+  display: inline-block;
 }

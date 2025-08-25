@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import passport from 'passport';
 import LocalStrategy from 'passport-local';
 import * as dao from './dao.mjs';
+import { Game } from './models.mjs'
 
 
 const app = express();
@@ -50,11 +51,8 @@ app.use(session({
 app.use(passport.authenticate('session'));
 
 
-// IMMAGINI
 app.use('/images', express.static('public/images'));
 
-
-// AUTENTICAZIONE UTENTE
 
 app.post('/api/session', passport.authenticate('local'), function(req, res) {
   return res.status(201).json(req.user);
@@ -77,12 +75,47 @@ app.delete('/api/session/current', (req, res) => {
 app.get('/api/game', async (req, res) => {
   try {
     const logged = req.user ? 1 : 0;
-    const game = await dao.getRandomPhrase(logged);
+    const phraseId = await dao.getRandomPhrase(logged);
+    const phrase = await dao.getPhrase(phraseId);
+    let startingCoins = 100;
+
+    if (req.user) {
+      const userCoins = await dao.getUserCoins(req.user.username);
+      startingCoins = userCoins < 100 ? userCoins : 100;
+      await dao.updateUserCoins(req.user.username, userCoins - startingCoins);
+    }
+
+    let revealed = phrase.text.replace(/[A-Z]/g, "_");
+    let guessedLetters = "";
+    let vowelUsed = 0;
+
+    const game = {
+      phraseId,
+      revealed,
+      coins: startingCoins,
+      vowelUsed,
+      guessedLetters
+    };
+    const gameId = await dao.createGame(game);
+    res.json(gameId);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/game/:id', async (req, res) => {
+  const gameId = req.params.id;
+  try {
+    const game = await dao.getGame(gameId);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
     res.json(game);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 app.get('/api/letters', async (req, res) => {
   try {

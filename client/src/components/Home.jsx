@@ -14,8 +14,7 @@ function StartButton(props){
           setLoading(true);
           try {
             setError(null);
-            {{/*navigate("/game");*/}}
-            setError("Started game");
+            navigate("/game");
           } catch (error) {
             setError("Error in starting the game");
           }
