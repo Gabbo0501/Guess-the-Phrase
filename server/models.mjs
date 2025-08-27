@@ -13,8 +13,7 @@ export class Phrase {
 }
 
 export class Game {
-    constructor(id, phraseId, revealed, coins, vowelUsed, guessedLetters) {
-        this.id = id;
+    constructor(phraseId, revealed, coins, vowelUsed, guessedLetters) {
         this.phraseId = phraseId;
         this.revealed = revealed;         
         this.coins = coins;
@@ -24,8 +23,8 @@ export class Game {
 }
 
 export class Letter {
-    constructor(letter, price) {
+    constructor(letter, cost) {
         this.letter = letter;
-        this.price = price;
+        this.cost = cost;
     }
 }

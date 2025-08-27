@@ -3,25 +3,11 @@ import { useNavigate } from "react-router";
 
 function StartButton(props){
   const user = props.user;
-  const setError = props.setError;
   const loading = props.loading;
-  const setLoading = props.setLoading;
-
-  const navigate = useNavigate();
+  const handleClick = props.handleClick;
 
   return (
-      <Button className="mx-3 w-auto righteous-font" variant="success" onClick={async () => {
-          setLoading(true);
-          try {
-            setError(null);
-            navigate("/game");
-          } catch (error) {
-            setError("Error in starting the game");
-          }
-          finally {
-            setLoading(false);
-          }
-        }}>
+      <Button className="mx-3 w-auto righteous-font" variant="success" onClick={handleClick}>
         {loading && (
           <span>
             <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true"/>
@@ -40,8 +26,6 @@ function StartButton(props){
 function LogButton(props) {
   const user = props.user;
   const handleLogout = props.handleLogout;
-  const setError = props.setError;
-  const setLoading = props.setLoading;
   const navigate = useNavigate();
 
     return (
@@ -51,7 +35,7 @@ function LogButton(props) {
             Logout
           </Button>
         ) : (
-          <Button className="mx-3 w-auto righteous-font" variant="success" onClick={() => { setLoading(false); setError(null); navigate("/login"); }}>
+          <Button className="mx-3 w-auto righteous-font" variant="success" onClick={() => { navigate("/login"); }}>
             Login
           </Button>
         )}
@@ -62,9 +46,16 @@ function LogButton(props) {
 function HomePage(props) {
   const user = props.user;
   const onError = props.onError;
-  const setError = props.setError;
-  const setLoading = props.setLoading;
   const handleLogout = props.handleLogout;
+  const startGame = props.startGame;
+  const loading = props.loading;
+
+  const navigate = useNavigate();
+
+  async function handleClick(){
+    await startGame();
+    navigate("/game");
+  }
 
   return(
     <Container className="page-center">
@@ -95,8 +86,8 @@ function HomePage(props) {
         </Row>
       )}
       <Row className="mb-3 justify-content-center">
-        <StartButton user={user} setError={setError} setLoading={setLoading}/>
-        <LogButton user={user} handleLogout={handleLogout} setError={setError} setLoading={setLoading}/>
+        <StartButton user={user} loading={loading} handleClick={handleClick} />
+        <LogButton user={user} handleLogout={handleLogout} />
       </Row>
     </Container>
   )

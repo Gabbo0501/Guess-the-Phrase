@@ -3,14 +3,13 @@ import { Navbar, Container } from "react-bootstrap";
 
 function NavbarCustom(props) {
     const navigate = useNavigate();
-    const setError = props.setError;
-    const setLoading = props.setLoading;
+    const quitGame = props.quitGame;
 
     return (
         <Navbar className="pb-3 pt-3" expand="lg" bg="dark" variant="dark">
             <Container className="justify-content-center">
                 <Navbar.Brand
-                    onClick={() => { setLoading(false); setError(null); navigate("/"); }}
+                    onClick={() => { quitGame(); navigate("/"); }}
                     style={{ cursor: "pointer" }}
                     className="mx-auto righteous-font"
                 >

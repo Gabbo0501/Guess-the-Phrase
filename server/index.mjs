@@ -53,7 +53,6 @@ app.use(passport.authenticate('session'));
 
 app.use('/images', express.static('public/images'));
 
-
 app.post('/api/session', passport.authenticate('local'), function(req, res) {
   return res.status(201).json(req.user);
 });
@@ -72,7 +71,20 @@ app.delete('/api/session/current', (req, res) => {
   });
 });
 
-app.get('/api/game', async (req, res) => {
+app.get('/api/letters', async (req, res) => {
+  try {
+    const letters = await dao.getAllLetters();
+    const letterCosts = {};
+    letters.forEach(item => {
+      letterCosts[item.letter] = item.cost;
+    });
+    res.json(letterCosts);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/game', async (req, res) => {
   try {
     const logged = req.user ? 1 : 0;
     const phraseId = await dao.getRandomPhrase(logged);
@@ -116,11 +128,13 @@ app.get('/api/game/:id', async (req, res) => {
   }
 });
 
-
-app.get('/api/letters', async (req, res) => {
+app.delete('/api/game/:id', async (req, res) => {
+  const gameId = req.params.id;
   try {
-    const letters = await dao.getAllLetters();
-    res.json(letters);
+    console.log("Deleting game " + gameId);
+    await dao.deleteGame(gameId);
+     console.log("Game deleted");
+    res.status(204).end();
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }

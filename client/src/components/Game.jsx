@@ -1,27 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Button, Badge, Container, Alert, Spinner, Card, Form, Row, Col } from "react-bootstrap";
-
-const fakeGame = {
-    id: 1,
-    phraseId: 42,
-    revealed: "H_LL_ W__L_ _________ ____",
-    coins: 85,
-    vowelUsed: 1,
-    guessedLetters: "AHLW"
-};
-
-const letterCosts = {
-    'A': 10, 'E': 10, 'I': 10, 'O': 10, 'U': 10,
-    'H': 5, 'N': 5, 'S': 5, 'T': 5,
-    'D': 4, 'L': 4, 'R': 4,
-    'C': 3, 'F': 3, 'G': 3, 'M': 3, 'W': 3,
-    'B': 2, 'P': 2, 'Y': 2,
-    'J': 1, 'K': 1, 'Q': 1, 'V': 1, 'X': 1, 'Z': 1
-};
+import { getLettersCost, getGame } from "../API/API.mjs";
 
 export function LetterSelector(props) {
     const game = props.game;
     const letterCosts = props.letterCosts;
+    const letterSubmit = props.letterSubmit;
 
     const alphabet = Object.keys(letterCosts).sort();
     const vowels = alphabet.filter(letter => letterCosts[letter] === 10);
@@ -45,11 +30,7 @@ export function LetterSelector(props) {
                     size="md"
                     className={btnClass}
                     disabled={isGuessed || notEnoughCoins || cannotUseVowel}
-                    onClick={() => onLetterClick(letter)}
-                    title={
-                        cannotUseVowel ? "You can only use one vowel per game" :
-                        notEnoughCoins ? `Need ${cost} coins` : `Costs ${cost} coins`
-                    }
+                    onClick={async () => { await letterSubmit(letter); }}
                 >
                     <span className="righteous-font">{letter}</span>
                     <Badge className="coin-badge">{cost}</Badge>
@@ -71,12 +52,14 @@ export function LetterSelector(props) {
     );
 }
 
-function GuessPhraseBox({ onSubmit }) {
+function GuessPhraseBox(props) {
+    const textSubmit = props.textSubmit;
+
     const [text, setText] = useState("");
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onSubmit && onSubmit(text);
+        await textSubmit(text);
         setText("");
     };
 
@@ -89,6 +72,7 @@ function GuessPhraseBox({ onSubmit }) {
                 <Form onSubmit={handleSubmit}>
                     <Form.Control
                         as="textarea"
+                        name="guess"
                         rows={3}
                         value={text}
                         onChange={e => setText(e.target.value)}
@@ -104,16 +88,16 @@ function GuessPhraseBox({ onSubmit }) {
 }
 
 function PhraseViewer(props) {
-    const revealed = props.revealed;
+    const revealed = props.revealed || "";
     return (
         <div className="phrase-viewer">
             {revealed.split("").map((char, idx) =>
                 char === " " ? (
-                    <span key={idx} className="phrase-space"></span>
+                    <div key={idx} className="phrase-space"></div>
                 ) : char === "_" ? (
-                    <span key={idx} className="phrase-letter"></span>
+                    <div key={idx} className="phrase-letter"></div>
                 ) : (
-                    <span key={idx} className="phrase-letter revealed righteous-font">{char}</span>
+                    <div key={idx} className="phrase-letter revealed righteous-font">{char}</div>
                 )
             )}
         </div>
@@ -121,9 +105,17 @@ function PhraseViewer(props) {
 }
 
 function GameStatusBar(props) {
+    const gameID = props.gameID;
     const coins = props.coins;
     const time = props.time;
-    const onAbandon = props.onAbandon;
+    const quitGame = props.quitGame;
+
+    const navigate = useNavigate();
+
+    const handleClick = async () => {
+        await quitGame(gameID);
+        navigate("/");
+    };
 
     return (
         <div className="d-flex justify-content-between align-items-start mb-4">
@@ -137,7 +129,7 @@ function GameStatusBar(props) {
                     <p className="righteous-font text-light fs-1 mt-0">{time}</p>
                 </div>
             </div>
-            <Button className="righteous-font" variant="danger" onClick={onAbandon}>
+            <Button className="righteous-font" variant="danger" onClick={handleClick}>
                 Exit
             </Button>
         </div>
@@ -145,17 +137,58 @@ function GameStatusBar(props) {
 }
 
 export function GamePage(props) {
-    const user = props.user;
+    const gameID = props.gameID;
     const setError = props.setError;
     const onError = props.onError;
     const setLoading = props.setLoading;
     const loading = props.loading;
+    const quitGame = props.quitGame;
 
+    const [game, setGame] = useState();
+    const [updatedGame, setUpdatedGame] = useState();
+    const [letterCosts, setLetterCosts] = useState([]);
     const [time, setTime] = useState(60);
 
-    const handleAbandon = () => {
-        alert("Partita abbandonata!");
+    const textSubmit = async (text) => {
+        alert("text sent: " + text);
     };
+
+    const letterSubmit = async (letter) => {
+        alert("letter sent: " + letter);
+    };
+
+    const fetchLetters = async () => {
+        try {
+            setLetterCosts(await getLettersCost());
+        } catch (error) {
+            setError("Error in fetching letter costs");
+        }
+    };
+
+    const fetchGame = async (gameID) => {
+        try {
+            setLoading(true);
+            if (gameID) {
+                setGame(await getGame(gameID));
+            }
+            else {
+                setGame(null);
+            }
+        } catch (error) {
+            setError("Error in fetching the game");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (updatedGame) setUpdatedGame(false);
+        fetchGame(gameID);
+    }, [gameID, updatedGame]);
+
+    useEffect(() => {
+        fetchLetters();
+    }, []);
 
 
     if (loading) {
@@ -166,23 +199,31 @@ export function GamePage(props) {
         );
     }
 
+    if (!game){
+        return (
+            <Container className="page-center">
+                <h2 className="righteous-font display-6">Game not found</h2>
+            </Container>
+        );
+    }
+
     return (
         <Container className="mt-4 mb-4">
             { onError && ( <Alert variant="warning">{onError}</Alert> ) }
             <Row className="justify-content-center">
                 <Col md={12}>
                     <Card className="bg-dark mb-4 pb-4 px-5 pt-4">
-                        <GameStatusBar coins={fakeGame.coins} time={time} onAbandon={handleAbandon} />
-                        <PhraseViewer revealed={fakeGame.revealed} />
+                        <GameStatusBar gameID={gameID} coins={game.coins} time={time} quitGame={quitGame} />
+                        <PhraseViewer revealed={game.revealed} />
                     </Card>
                 </Col>
             </Row>
             <Row className="justify-content-center">
                 <Col md={7} lg={7}>
-                    <LetterSelector game={fakeGame} letterCosts={letterCosts} />
+                    <LetterSelector game={game} letterCosts={letterCosts} letterSubmit={letterSubmit} />
                 </Col>
                 <Col md={5} lg={5}>
-                    <GuessPhraseBox />
+                    <GuessPhraseBox textSubmit={textSubmit} />
                 </Col>
             </Row>
         </Container>

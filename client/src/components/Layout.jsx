@@ -13,12 +13,11 @@ function FilmBar() {
 }
 
 function Layout(props) {
-    const setError = props.setError;
-    const setLoading = props.setLoading;
+    const quitGame = props.quitGame;
 
     return (
         <>
-            <NavbarCustom setError={setError} setLoading={setLoading}/>
+            <NavbarCustom quitGame={quitGame} />
             <div style={{ display: 'flex'}}>
                 <FilmBar />
                 <div className='outlet-container'>

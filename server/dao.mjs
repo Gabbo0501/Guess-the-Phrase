@@ -23,6 +23,16 @@ export function getUser(username, password) {
     });
 }
 
+export function getAllLetters() {
+    return new Promise((resolve, reject) => {
+        db.all("SELECT * FROM Letters", [], (err, rows) => {
+            if (err) return reject(err);
+            const letters = rows.map(row => new Letter(row.letter, row.cost));
+            resolve(letters);
+        });
+    });
+}
+
 export function getUserCoins(username) {
     return new Promise((resolve, reject) => {
         db.get("SELECT coins FROM Users WHERE username = ?", [username], (err, row) => {
@@ -37,16 +47,6 @@ export function updateUserCoins(username, newValue) {
         db.run("UPDATE Users SET coins = ? WHERE username = ?", [newValue, username], function(err) {
             if (err) return reject(err);
             resolve();
-        });
-    });
-}
-
-export function getAllLetters() {
-    return new Promise((resolve, reject) => {
-        db.all("SELECT letter FROM Letters", [], (err, rows) => {
-            if (err) return reject(err);
-            const letters = rows.map(row => new Letter(row.letter, row.price));
-            resolve(letters);
         });
     });
 }
@@ -85,7 +85,7 @@ export function getGame(id) {
         db.get("SELECT * FROM Games WHERE id = ?", [id], (err, row) => {
             if (err) return reject(err);
             if (!row) return resolve(null);
-            resolve(new Game(row.id, row.phraseId, row.revealed, row.coins, row.vowelUsed, row.guessedLetter));
+            resolve(new Game(row.phraseId, row.revealed, row.coins, row.vowelUsed, row.guessedLetter));
         });
     });
 }

@@ -11,11 +11,11 @@ function AuthForm(props) {
         const password = formData.get('password');
 
         if (!username|| !/^[a-zA-Z0-9_]{3,}$/.test(username)) {
-            setInputError("L'username deve essere lungo almeno 3 caratteri e può contenere solo lettere, numeri e underscore.");
+            setInputError("Invalid username: username must be at least 3 characters long and can only contain letters, numbers, and underscores.");
             return { error: true };
         }
         if (!password || !/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
-            setInputError("La password deve essere lunga almeno 8 caratteri e contenere almeno una lettera e un numero.");
+            setInputError("Invalid password: password must be at least 8 characters long and contain at least one letter and one number.");
             return { error: true };
         }
         setInputError(false);
@@ -81,7 +81,7 @@ function LoginPage(props) {
     return (
         <Container className="page-center">
             {user ? (
-                <h2 className="righteous-font display-6">Già loggato</h2>
+                <h2 className="righteous-font display-6">Already logged in</h2>
             ) : (
                 <AuthForm handleLogin={handleLogin}/>
             )}
