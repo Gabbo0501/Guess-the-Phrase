@@ -1,8 +1,6 @@
 import { Game, User } from "../models/models.mjs";
 
-const SERVER_URL = "http://localhost:3001";
-
-
+const SERVER_URL = "http://localhost:3001"
 
 export const login = async (credentials) => {
     const response = await fetch(`${SERVER_URL}/api/session`, {
@@ -86,6 +84,34 @@ export const getGame = async (gameID) => {
         throw new Error (data.error);
     }
     return new Game(data.revealed, data.coins, data.vowelUsed, data.guessedLetters);
+}
+
+export const guessPhrase = async (gameID, phrase) => {
+    const response = await fetch(`${SERVER_URL}/api/game/${gameID}/guessPhrase`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phrase })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error (data.error);
+    }
+    return data;
+}
+
+export const guessLetter = async (gameID, letter) => {
+    const response = await fetch(`${SERVER_URL}/api/game/${gameID}/guessLetter`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ letter })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error (data.error);
+    }
+    return data;
 }
 
 export const deleteGame = async (gameID) => {

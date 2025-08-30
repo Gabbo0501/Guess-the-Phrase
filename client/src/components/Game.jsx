@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button, Badge, Container, Alert, Spinner, Card, Form, Row, Col } from "react-bootstrap";
-import { getLettersCost, getGame } from "../API/API.mjs";
+import { getLettersCost, getGame, guessLetter, guessPhrase } from "../API/API.mjs";
 
 export function LetterSelector(props) {
     const game = props.game;
@@ -147,14 +147,46 @@ export function GamePage(props) {
     const [game, setGame] = useState();
     const [updatedGame, setUpdatedGame] = useState();
     const [letterCosts, setLetterCosts] = useState([]);
+    const [correct, setCorrect] = useState(false);
+    const [uncorrect, setUncorrect] = useState(false);
     const [time, setTime] = useState(60);
 
     const textSubmit = async (text) => {
-        alert("text sent: " + text);
+        try {
+            setCorrect(false);
+            setUncorrect(false);
+            setLoading(true);
+            const result = await guessPhrase(gameID, text);
+            if (result.correct){
+                setCorrect(true);
+            } else {
+                setUncorrect(true);
+            }
+            setUpdatedGame(true);
+        } catch (error) {
+            setError("Error in guessing the phrase");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const letterSubmit = async (letter) => {
-        alert("letter sent: " + letter);
+        try {
+            setCorrect(false);
+            setUncorrect(false);
+            setLoading(true);
+            const result = await guessLetter(gameID, letter);
+            if (result.correct){
+                setCorrect(true);
+            } else {
+                setUncorrect(true);
+            }
+            setUpdatedGame(true);
+        } catch (error) {
+            setError("Error in guessing the letter");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const fetchLetters = async () => {
@@ -211,6 +243,8 @@ export function GamePage(props) {
     return (
         <Container className="mt-4 mb-4">
             { onError && ( <Alert variant="warning">{onError}</Alert> ) }
+            { correct && ( <Alert variant="success">Correct!</Alert> ) }
+            { uncorrect && ( <Alert variant="danger">Incorrect!</Alert> ) }
             <Row className="justify-content-center">
                 <Col md={12}>
                     <Card className="bg-dark mb-4 pb-4 px-5 pt-4">
