@@ -84,9 +84,35 @@ app.get('/api/letters', async (req, res) => {
   }
 });
 
+app.patch('/api/user/:id', isLoggedIn, async (req, res) => {
+  const userID = req.params.id;
+  const gameID = req.body;
+
+  try {
+    const userCoins = await dao.getUserCoins(userID);
+    if (userCoins === undefined || userCoins === null) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const game = await dao.getGame(gameID);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    if (game.user != userID) {
+      return res.status(403).json({ error: 'Not authorized to update this game' });
+    }
+    userCoins = userCoins + game.coins - 100;
+    if (userCoins < 0) userCoins = 0;
+    await dao.updateUserCoins(userID, userCoins);
+    res.status(200).end();
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/api/game', async (req, res) => {
   try {
     const logged = req.user ? 1 : 0;
+    const user = req.user ? req.user.username : null;
 
     const phraseId = await dao.getRandomPhrase(logged);
     const phrase = await dao.getPhrase(phraseId);
@@ -98,14 +124,13 @@ app.post('/api/game', async (req, res) => {
     if (req.user) {
       const userCoins = await dao.getUserCoins(req.user.username);
       startingCoins = userCoins < 100 ? userCoins : 100;
-      await dao.updateUserCoins(req.user.username, userCoins - startingCoins);
     }
 
     let revealed = phrase.testo.replace(/[A-Z]/g, "_");
     let guessedLetters = "";
     let vowelUsed = 0;
 
-    const game = new Game(phraseId, logged, revealed, startingCoins, vowelUsed, guessedLetters);
+    const game = new Game(phraseId, user, revealed, startingCoins, vowelUsed, guessedLetters, 0);
     const gameId = await dao.createGame(game);
     res.status(201).json(gameId);
   } catch (error) {
@@ -116,10 +141,14 @@ app.post('/api/game', async (req, res) => {
 
 app.get('/api/game/:id', async (req, res) => {
   const gameId = req.params.id;
+  const user = req.user ? req.user.username : null;
   try {
     const game = await dao.getGame(gameId);
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
+    }
+    if (game.user !== user) {
+      return res.status(403).json({ error: 'Not authorized to access this game' });
     }
     res.json(game);
   } catch (error) {
@@ -129,7 +158,15 @@ app.get('/api/game/:id', async (req, res) => {
 
 app.delete('/api/game/:id', async (req, res) => {
   const gameId = req.params.id;
+  const user = req.user ? req.user.username : null;
   try {
+    const game = await dao.getGame(gameId);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    if (game.user !== user) {
+      return res.status(403).json({ error: 'Not authorized to delete this game' });
+    }
     await dao.deleteGame(gameId);
     res.status(204).end();
   } catch (error) {

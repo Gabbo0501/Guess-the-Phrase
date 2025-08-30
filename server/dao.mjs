@@ -72,7 +72,7 @@ export function getPhrase(id) {
 export function createGame(game) {
     return new Promise((resolve, reject) => {
         db.run(
-            "INSERT INTO Games (phraseId, logged, revealed, coins, vowelUsed, guessedLetter) VALUES (?, ?, ?, ?,?, ?)", [game.phraseId, game.logged, game.revealed, game.coins, game.vowelUsed, game.guessedLetters], function(err) {
+            "INSERT INTO Games (phraseId, user, revealed, coins, vowelUsed, guessedLetter, ended) VALUES (?, ?, ?, ?, ?, ?, ?)", [game.phraseId, game.user, game.revealed, game.coins, game.vowelUsed, game.guessedLetters, game.ended], function(err) {
                 if (err) return reject(err);
                 resolve(this.lastID);
             }
@@ -85,7 +85,7 @@ export function getGame(id) {
         db.get("SELECT * FROM Games WHERE id = ?", [id], (err, row) => {
             if (err) return reject(err);
             if (!row) return resolve(null);
-            resolve(new Game(row.phraseId, row.logged, row.revealed, row.coins, row.vowelUsed, row.guessedLetter));
+            resolve(new Game(row.phraseId, row.user, row.revealed, row.coins, row.vowelUsed, row.guessedLetter, row.ended));
         });
     });
 }
@@ -93,7 +93,7 @@ export function getGame(id) {
 export function updateGame(game) {
     return new Promise((resolve, reject) => {
         db.run(
-            "UPDATE Games SET revealed = ?, coins = ?, vowelUsed = ?, guessedLetter = ? WHERE id = ?", [game.revealed, game.coins, game.vowelUsed, game.guessedLetters, game.id], function(err) {
+            "UPDATE Games SET revealed = ?, coins = ?, vowelUsed = ?, guessedLetter = ?, ended = ? WHERE id = ?", [game.revealed, game.coins, game.vowelUsed, game.guessedLetters, game.ended, game.id], function(err) {
                 if (err) return reject(err);
                 resolve();
             }

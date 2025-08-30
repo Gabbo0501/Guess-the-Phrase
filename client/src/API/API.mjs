@@ -1,4 +1,4 @@
-import { User } from "../models/models.mjs";
+import { Game, User } from "../models/models.mjs";
 
 const SERVER_URL = "http://localhost:3001";
 
@@ -15,7 +15,7 @@ export const login = async (credentials) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new User(data.username, data.email);
+    return new User(data.username, data.email, data.coins);
 }
 
 export const getUserInfo = async () => {
@@ -27,7 +27,7 @@ export const getUserInfo = async () => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new User(data.username, data.email);
+    return new User(data.username, data.email, data.coins);
 }
 
 export const logOut = async() => {
@@ -45,11 +45,23 @@ export const getLettersCost = async () => {
         method: 'GET',
         credentials: 'include'
     });
-    const data = await response.json();
+    const dictionary = await response.json();
     if (!response.ok) {
-        throw new Error (data.error);
+        throw new Error (dictionary.error);
     }
-    return data;
+    return dictionary;
+}
+
+export const updateUserCoins = async (userID, gameID) => {
+    const response = await fetch(`${SERVER_URL}/api/user/${userID}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameID })
+    });
+    if (!response.ok) {
+        throw new Error("Errore nell'aggiornamento delle monete");
+    }
 }
 
 export const createGame = async () => {
@@ -57,11 +69,11 @@ export const createGame = async () => {
         method: 'POST',
         credentials: 'include'
     });
-    const data = await response.json();
+    const gameID = await response.json();
     if (!response.ok) {
-        throw new Error (data.error);
+        throw new Error (gameID.error);
     }
-    return data;
+    return gameID;
 }
 
 export const getGame = async (gameID) => {
@@ -73,7 +85,7 @@ export const getGame = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return data;
+    return new Game(data.revealed, data.coins, data.vowelUsed, data.guessedLetters);
 }
 
 export const deleteGame = async (gameID) => {

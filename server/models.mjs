@@ -1,7 +1,8 @@
 export class User {
-    constructor(username, email) {
+    constructor(username, email, coins) {
         this.username = username;
         this.email = email;
+        this.coins = coins;
     }
 }
 
@@ -13,13 +14,14 @@ export class Phrase {
 }
 
 export class Game {
-    constructor(phraseId, logged, revealed, coins, vowelUsed, guessedLetters) {
+    constructor(phraseId, user, revealed, coins, vowelUsed, guessedLetters, ended) {
         this.phraseId = phraseId;
-        this.logged = logged;
+        this.user = user;
         this.revealed = revealed;
         this.coins = coins;
         this.vowelUsed = vowelUsed;
         this.guessedLetters = guessedLetters;
+        this.ended = ended;
     }
 }
 
