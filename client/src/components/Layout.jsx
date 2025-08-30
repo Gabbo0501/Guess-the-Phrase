@@ -13,11 +13,12 @@ function FilmBar() {
 }
 
 function Layout(props) {
+    const gameID = props.gameID;
     const quitGame = props.quitGame;
 
     return (
         <>
-            <NavbarCustom quitGame={quitGame} />
+            <NavbarCustom gameID={gameID} quitGame={quitGame}/>
             <div style={{ display: 'flex'}}>
                 <FilmBar />
                 <div className='outlet-container'>

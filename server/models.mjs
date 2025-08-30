@@ -6,16 +6,17 @@ export class User {
 }
 
 export class Phrase {
-    constructor(text, film) {
-        this.text = text;
+    constructor(testo, film) {
+        this.testo = testo;
         this.film = film;
     }
 }
 
 export class Game {
-    constructor(phraseId, revealed, coins, vowelUsed, guessedLetters) {
+    constructor(phraseId, logged, revealed, coins, vowelUsed, guessedLetters) {
         this.phraseId = phraseId;
-        this.revealed = revealed;         
+        this.logged = logged;
+        this.revealed = revealed;
         this.coins = coins;
         this.vowelUsed = vowelUsed;
         this.guessedLetters = guessedLetters;

@@ -53,15 +53,15 @@ export const getLettersCost = async () => {
 }
 
 export const createGame = async () => {
-    /*const response = await fetch(`${SERVER_URL}/api/game`, {
+    const response = await fetch(`${SERVER_URL}/api/game`, {
         method: 'POST',
         credentials: 'include'
     });
     const data = await response.json();
     if (!response.ok) {
         throw new Error (data.error);
-    }*/
-    return 2;
+    }
+    return data;
 }
 
 export const getGame = async (gameID) => {

@@ -168,6 +168,7 @@ export function GamePage(props) {
     const fetchGame = async (gameID) => {
         try {
             setLoading(true);
+            setError(null);
             if (gameID) {
                 setGame(await getGame(gameID));
             }
@@ -199,7 +200,7 @@ export function GamePage(props) {
         );
     }
 
-    if (!game){
+    if (!game && !loading) {
         return (
             <Container className="page-center">
                 <h2 className="righteous-font display-6">Game not found</h2>

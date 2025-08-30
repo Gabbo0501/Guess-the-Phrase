@@ -57,28 +57,36 @@ function App() {
   }, []);
 
   const startGame = async () => {
+    setLoading(true);
+    setError(null);
     try {
       setGameID(await createGame());
     } catch (error) {
       setError("Error in starting the game");
+    } finally {
+      setLoading(false);
     }
   };
 
   const quitGame = async (gameID) => {
     if (gameID != null) {
+      setLoading(true);
+      setError(null);
       try {
         await deleteGame(gameID);
       } catch (error) {
         setError("Error in quitting the game");
+      } finally {
+        setLoading(false);
+        setGameID(null);
       }
     }
-    setGameID(null);
   };
 
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<Layout quitGame={quitGame} />}>
+        <Route path="/" element={<Layout gameID={gameID} quitGame={quitGame}/>}>
           <Route index element={<HomePage
             user={user}
             onError={onError}

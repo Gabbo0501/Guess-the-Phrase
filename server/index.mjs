@@ -87,30 +87,29 @@ app.get('/api/letters', async (req, res) => {
 app.post('/api/game', async (req, res) => {
   try {
     const logged = req.user ? 1 : 0;
+
     const phraseId = await dao.getRandomPhrase(logged);
     const phrase = await dao.getPhrase(phraseId);
-    let startingCoins = 100;
+    if (!phrase || !phrase.testo) {
+      return res.status(404).json({ error: "Phrase not found" });
+    }
 
+    let startingCoins = 100;
     if (req.user) {
       const userCoins = await dao.getUserCoins(req.user.username);
       startingCoins = userCoins < 100 ? userCoins : 100;
       await dao.updateUserCoins(req.user.username, userCoins - startingCoins);
     }
 
-    let revealed = phrase.text.replace(/[A-Z]/g, "_");
+    let revealed = phrase.testo.replace(/[A-Z]/g, "_");
     let guessedLetters = "";
     let vowelUsed = 0;
 
-    const game = {
-      phraseId,
-      revealed,
-      coins: startingCoins,
-      vowelUsed,
-      guessedLetters
-    };
+    const game = new Game(phraseId, logged, revealed, startingCoins, vowelUsed, guessedLetters);
     const gameId = await dao.createGame(game);
-    res.json(gameId);
+    res.status(201).json(gameId);
   } catch (error) {
+    console.error("Error creating game: ", error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -131,9 +130,7 @@ app.get('/api/game/:id', async (req, res) => {
 app.delete('/api/game/:id', async (req, res) => {
   const gameId = req.params.id;
   try {
-    console.log("Deleting game " + gameId);
     await dao.deleteGame(gameId);
-     console.log("Game deleted");
     res.status(204).end();
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });

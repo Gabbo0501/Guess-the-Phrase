@@ -39,7 +39,7 @@ function AuthForm(props) {
                 )}
                 {loginState && loginState.error && !inputError && (
                     <Alert variant="warning">
-                        Errore nel login - controlla username e password.
+                        Errore nel login - controlla username e password
                     </Alert>
                 )}
                 <InputGroup className="mb-3">
