@@ -53,7 +53,7 @@ export function updateUserCoins(username, newValue) {
 
 export function getRandomPhrase(logged) {
     return new Promise((resolve, reject) => {
-        db.get("SELECT * FROM Frasi WHERE logged = ? ORDER BY RANDOM() LIMIT 1", [logged], (err, row) => {
+        db.get("SELECT * FROM Phrases WHERE logged = ? ORDER BY RANDOM() LIMIT 1", [logged], (err, row) => {
             if (err) return reject(err);
             resolve (row.id);
         });
@@ -62,9 +62,9 @@ export function getRandomPhrase(logged) {
 
 export function getPhrase(id) {
     return new Promise((resolve, reject) => {
-        db.get("SELECT * FROM Frasi WHERE id = ?", [id], (err, row) => {
+        db.get("SELECT * FROM Phrases WHERE id = ?", [id], (err, row) => {
             if (err) return reject(err);
-            resolve(new Phrase(row.testo, row.film));
+            resolve(new Phrase(row.text, row.film));
         });
     });
 }
@@ -72,7 +72,7 @@ export function getPhrase(id) {
 export function createGame(game) {
     return new Promise((resolve, reject) => {
         db.run(
-            "INSERT INTO Games (phraseId, user, revealed, coins, vowelUsed, guessedLetter, ended) VALUES (?, ?, ?, ?, ?, ?, ?)", [game.phraseId, game.user, game.revealed, game.coins, game.vowelUsed, game.guessedLetters, game.ended], function(err) {
+            "INSERT INTO Games (phraseId, username, revealed, coins, vowelUsed, guessedLetters, ended) VALUES (?, ?, ?, ?, ?, ?, ?)", [game.phraseId, game.username, game.revealed, game.coins, game.vowelUsed, game.guessedLetters, game.ended], function(err) {
                 if (err) return reject(err);
                 resolve(this.lastID);
             }
@@ -85,15 +85,15 @@ export function getGame(id) {
         db.get("SELECT * FROM Games WHERE id = ?", [id], (err, row) => {
             if (err) return reject(err);
             if (!row) return resolve(null);
-            resolve(new Game(row.phraseId, row.user, row.revealed, row.coins, row.vowelUsed, row.guessedLetter, row.ended));
+            resolve(new Game(row.phraseId, row.username, row.revealed, row.coins, row.vowelUsed, row.guessedLetters, row.ended));
         });
     });
 }
 
-export function updateGame(game) {
+export function updateGame(id, game) {
     return new Promise((resolve, reject) => {
         db.run(
-            "UPDATE Games SET revealed = ?, coins = ?, vowelUsed = ?, guessedLetter = ?, ended = ? WHERE id = ?", [game.revealed, game.coins, game.vowelUsed, game.guessedLetters, game.ended, game.id], function(err) {
+            "UPDATE Games SET revealed = ?, coins = ?, vowelUsed = ?, guessedLetters = ?, ended = ? WHERE id = ?", [game.revealed, game.coins, game.vowelUsed, game.guessedLetters, game.ended, id], function(err) {
                 if (err) return reject(err);
                 resolve();
             }

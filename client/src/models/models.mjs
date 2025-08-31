@@ -7,10 +7,26 @@ export class User {
 }
 
 export class Game {
-    constructor(revealed, coins, vowelUsed, guessedLetters) {
+    constructor(revealed, coins, vowelUsed, guessedLetters, ended) {
         this.revealed = revealed;
         this.coins = coins;
         this.vowelUsed = vowelUsed;
         this.guessedLetters = guessedLetters;
+        this.ended = ended;
+    }
+}
+
+export class GameMessage {
+    constructor(correct, coinUpdate, hiddenPhrase) {
+        this.correct = correct;
+        this.coinUpdate = coinUpdate;
+        this.hiddenPhrase = hiddenPhrase;
+    }
+}
+
+export class Phrase {
+    constructor(text, film) {
+        this.text = text;
+        this.film = film;
     }
 }

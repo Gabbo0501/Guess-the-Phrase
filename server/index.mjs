@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import passport from 'passport';
 import LocalStrategy from 'passport-local';
 import * as dao from './dao.mjs';
-import { Game } from './models.mjs'
+import { Game, GameMessage, User } from './models.mjs'
 
 
 const app = express();
@@ -25,7 +25,7 @@ app.use(cors(corsOptions));
 passport.use(new LocalStrategy(async function verify(username, password, done) {
   const user = await dao.getUser(username, password);
   if (!user) return done(null, false, { message: 'Incorrect username or password' });
-  return done(null, {username: user.username, email: user.email});
+  return done(null, new User(user.username, user.email, user.coins));
 }));
 
 passport.serializeUser((user, done) => {
@@ -85,11 +85,11 @@ app.get('/api/letters', async (req, res) => {
 });
 
 app.patch('/api/user/:id', isLoggedIn, async (req, res) => {
-  const userID = req.params.id;
+  const username = req.params.id;
   const gameID = req.body;
 
   try {
-    const userCoins = await dao.getUserCoins(userID);
+    const userCoins = await dao.getUserCoins(username);
     if (userCoins === undefined || userCoins === null) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -97,12 +97,12 @@ app.patch('/api/user/:id', isLoggedIn, async (req, res) => {
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
-    if (game.user != userID) {
+    if (game.username != username) {
       return res.status(403).json({ error: 'Not authorized to update this game' });
     }
     userCoins = userCoins + game.coins - 100;
     if (userCoins < 0) userCoins = 0;
-    await dao.updateUserCoins(userID, userCoins);
+    await dao.updateUserCoins(username, userCoins);
     res.status(200).end();
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -112,42 +112,42 @@ app.patch('/api/user/:id', isLoggedIn, async (req, res) => {
 app.post('/api/game', async (req, res) => {
   try {
     const logged = req.user ? 1 : 0;
-    const user = req.user ? req.user.username : null;
+    const username = req.user ? req.user.username : null;
 
     const phraseId = await dao.getRandomPhrase(logged);
     const phrase = await dao.getPhrase(phraseId);
-    if (!phrase || !phrase.testo) {
+    if (!phrase || !phrase.text) {
       return res.status(404).json({ error: "Phrase not found" });
     }
 
     let startingCoins = 100;
-    if (req.user) {
-      const userCoins = await dao.getUserCoins(req.user.username);
+    if (username) {
+      const userCoins = await dao.getUserCoins(username);
       startingCoins = userCoins < 100 ? userCoins : 100;
     }
 
-    let revealed = phrase.testo.replace(/[A-Z]/g, "_");
+    let revealed = phrase.text.replace(/[A-Z]/g, "_");
     let guessedLetters = "";
     let vowelUsed = 0;
+    let ended = 0;
 
-    const game = new Game(phraseId, user, revealed, startingCoins, vowelUsed, guessedLetters, 0);
-    const gameId = await dao.createGame(game);
-    res.status(201).json(gameId);
+    const game = new Game(phraseId, username, revealed, startingCoins, vowelUsed, guessedLetters, ended);
+    const gameID = await dao.createGame(game);
+    res.status(201).json(gameID);
   } catch (error) {
-    console.error("Error creating game: ", error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 app.get('/api/game/:id', async (req, res) => {
-  const gameId = req.params.id;
-  const user = req.user ? req.user.username : null;
+  const gameID = req.params.id;
+  const username = req.user ? req.user.username : null;
   try {
-    const game = await dao.getGame(gameId);
+    const game = await dao.getGame(gameID);
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
-    if (game.user !== user) {
+    if (game.username !== username) {
       return res.status(403).json({ error: 'Not authorized to access this game' });
     }
     res.json(game);
@@ -156,18 +156,53 @@ app.get('/api/game/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/game/:id', async (req, res) => {
-  const gameId = req.params.id;
-  const user = req.user ? req.user.username : null;
+app.patch('/api/game/:id/guessPhrase', async (req, res) => {
+  const gameID = req.params.id;
+  const presumedPhrase = req.body.phrase;
+  const username = req.user ? req.user.username : null;
+
   try {
-    const game = await dao.getGame(gameId);
+    const game = await dao.getGame(gameID);
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
-    if (game.user !== user) {
+    if (game.username !== username) {
+      return res.status(403).json({ error: 'Not authorized to access this game' });
+    }
+
+    const phrase = await dao.getPhrase(game.phraseId);
+    if (!phrase || !phrase.text) {
+      return res.status(404).json({ error: "Phrase not found" });
+    }
+
+    if (phrase.text.toUpperCase() === presumedPhrase.toUpperCase()) {
+      game.ended = 1;
+      game.coins += 100;
+      await dao.updateGame(gameID, game);
+      return res.json(new GameMessage(true, 100, phrase));
+    }
+    else {
+      game.ended = 1;
+      await dao.updateGame(gameID, game);
+      return res.json(new GameMessage(false, 0, phrase));
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/game/:id', async (req, res) => {
+  const gameID = req.params.id;
+  const username = req.user ? req.user.username : null;
+  try {
+    const game = await dao.getGame(gameID);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    if (game.username !== username) {
       return res.status(403).json({ error: 'Not authorized to delete this game' });
     }
-    await dao.deleteGame(gameId);
+    await dao.deleteGame(gameID);
     res.status(204).end();
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });

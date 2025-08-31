@@ -1,4 +1,4 @@
-import { Game, User } from "../models/models.mjs";
+import { Game, User, GameMessage, Phrase } from "../models/models.mjs";
 
 const SERVER_URL = "http://localhost:3001"
 
@@ -50,8 +50,8 @@ export const getLettersCost = async () => {
     return dictionary;
 }
 
-export const updateUserCoins = async (userID, gameID) => {
-    const response = await fetch(`${SERVER_URL}/api/user/${userID}`, {
+export const updateUserCoins = async (username, gameID) => {
+    const response = await fetch(`${SERVER_URL}/api/user/${username}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { "Content-Type": "application/json" },
@@ -83,12 +83,12 @@ export const getGame = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new Game(data.revealed, data.coins, data.vowelUsed, data.guessedLetters);
+    return new Game(data.revealed, data.coins, data.vowelUsed, data.guessedLetters, data.ended);
 }
 
 export const guessPhrase = async (gameID, phrase) => {
     const response = await fetch(`${SERVER_URL}/api/game/${gameID}/guessPhrase`, {
-        method: 'POST',
+        method: 'PATCH',
         credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phrase })
@@ -97,12 +97,12 @@ export const guessPhrase = async (gameID, phrase) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return data;
+    return new GameMessage(data.correct, data.coinUpdate, new Phrase(data.hiddenPhrase.text, data.hiddenPhrase.film));
 }
 
 export const guessLetter = async (gameID, letter) => {
     const response = await fetch(`${SERVER_URL}/api/game/${gameID}/guessLetter`, {
-        method: 'POST',
+        method: 'PATCH',
         credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ letter })
@@ -111,7 +111,19 @@ export const guessLetter = async (gameID, letter) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return data;
+    return new GameMessage(data.correct, data.coinUpdate, new Phrase(data.hiddenPhrase.text, data.hiddenPhrase.film));
+}
+
+export const expiredTime = async (gameID) => {
+    const response = await fetch(`${SERVER_URL}/api/game/${gameID}/expiredTime`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { "Content-Type": "application/json" },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error (data.error);
+    }
 }
 
 export const deleteGame = async (gameID) => {

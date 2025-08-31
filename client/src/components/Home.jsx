@@ -71,8 +71,12 @@ function HomePage(props) {
         <p className="fs-4 righteous-font">Movie Edition</p>
       </Row>
       { user && (
-        <Row>
-          <p>Welcome {user.username}!</p>
+        <Row className="mb-4 justify-content-center align-items-center">
+          <p className="righteous-font-light mb-0">Welcome <strong>{user.username}</strong>!</p>
+          <div className="d-flex align-items-center justify-content-center gap-2">
+            <p className="righteous-font-light mb-0">You have <strong>{user.coins}</strong> coins</p>
+            <div className="coin-badge"></div>
+          </div>
         </Row>
       )}
       { onError && (
@@ -82,7 +86,7 @@ function HomePage(props) {
       )}
       { !user && (
         <Row>
-          <p>Login to play the full version</p>
+          <p className="righteous-font-light">Login to play the full version</p>
         </Row>
       )}
       <Row className="mb-3 justify-content-center">

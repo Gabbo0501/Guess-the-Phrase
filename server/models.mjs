@@ -7,16 +7,16 @@ export class User {
 }
 
 export class Phrase {
-    constructor(testo, film) {
-        this.testo = testo;
+    constructor(text, film) {
+        this.text = text;
         this.film = film;
     }
 }
 
 export class Game {
-    constructor(phraseId, user, revealed, coins, vowelUsed, guessedLetters, ended) {
+    constructor(phraseId, username, revealed, coins, vowelUsed, guessedLetters, ended) {
         this.phraseId = phraseId;
-        this.user = user;
+        this.username = username;
         this.revealed = revealed;
         this.coins = coins;
         this.vowelUsed = vowelUsed;
@@ -29,5 +29,13 @@ export class Letter {
     constructor(letter, cost) {
         this.letter = letter;
         this.cost = cost;
+    }
+}
+
+export class GameMessage {
+    constructor(correct, coinUpdate, hiddenPhrase) {
+        this.correct = correct;
+        this.coinUpdate = coinUpdate;
+        this.hiddenPhrase = hiddenPhrase;
     }
 }
