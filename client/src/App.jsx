@@ -17,71 +17,82 @@ function App() {
 
   const [gameID, setGameID] = useState(null);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(0);
   const [onError, setError] = useState(null);
 
   const navigate = useNavigate();
 
   const handleLogin = async (credentials) => {
     try {
+      setLoading(prev => prev+1);
       setUser(await login(credentials));
       navigate('/');
     }
     catch (error) {
       setUser(null);
       throw error;
+    } finally {
+      setLoading(prev => Math.max(0, prev-1));
     }
   }
 
   const handleLogout = async () => {
     try {
+      setLoading(prev => prev+1);
       await logOut();
       setUser(null);
       navigate('/');
     }
     catch (error) {
       throw error;
+    } finally {
+      setLoading(prev => Math.max(0, prev-1));
     }
   };
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await getUserInfo();
-        setUser(user);
-      } catch {
-        setUser(null);
-      }
-    };
-    checkAuth();
-  }, []);
+  const checkAuth = async () => {
+    try {
+      setLoading(prev => prev+1);
+      const user = await getUserInfo();
+      setUser(user);
+      console.log("User updated:", user); 
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(prev => Math.max(0, prev-1));
+    }
+  };
 
   const startGame = async () => {
-    setLoading(true);
+    setLoading(prev => prev+1);
     setError(null);
     try {
       setGameID(await createGame());
     } catch (error) {
       setError("Error in starting the game");
     } finally {
-      setLoading(false);
+      setLoading(prev => Math.max(0, prev-1));
     }
   };
 
   const quitGame = async (gameID) => {
     if (gameID != null) {
-      setLoading(true);
+      setLoading(prev => prev+1);
       setError(null);
       try {
         await deleteGame(gameID);
       } catch (error) {
         setError("Error in quitting the game");
       } finally {
-        setLoading(false);
+        setLoading(prev => Math.max(0, prev-1));
         setGameID(null);
       }
     }
   };
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   return (
     <div className="App">
@@ -95,13 +106,14 @@ function App() {
             startGame={startGame}
           />} />
           <Route path="game" element={<GamePage
-            user={user}
-            gameID={gameID}
-            loading={loading}
-            setLoading={setLoading}
-            onError={onError}
-            setError={setError}
-            quitGame={quitGame}
+              user={user}
+              gameID={gameID}
+              loading={loading}
+              setLoading={setLoading}
+              onError={onError}
+              setError={setError}
+              quitGame={quitGame}
+              checkAuth={checkAuth}
           />} />
           <Route path="login" element={<LoginPage user={user} handleLogin={handleLogin}/>} />
           <Route path="*" element={<NotFound />} />

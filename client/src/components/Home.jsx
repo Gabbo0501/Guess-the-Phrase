@@ -8,15 +8,15 @@ function StartButton(props){
 
   return (
       <Button className="mx-3 w-auto righteous-font" variant="success" onClick={handleClick}>
-        {loading && (
+        {(loading>0) && (
           <span>
             <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true"/>
           </span>
         )}
-        {!loading && user && (
+        {(!loading) && user && (
           <span>Start</span>
         )}
-        {!loading && !user && (
+        {(!loading) && !user && (
           <span>Try</span>
         )}
       </Button>

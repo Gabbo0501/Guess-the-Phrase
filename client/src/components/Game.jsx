@@ -105,17 +105,9 @@ function PhraseViewer(props) {
 }
 
 function GameStatusBar(props) {
-    const gameID = props.gameID;
     const coins = props.coins;
     const time = props.time;
-    const quitGame = props.quitGame;
-
-    const navigate = useNavigate();
-
-    const handleClick = async () => {
-        await quitGame(gameID);
-        navigate("/");
-    };
+    const handleClick = props.handleClick;
 
     return (
         <div className="d-flex justify-content-between align-items-start mb-4">
@@ -138,16 +130,12 @@ function GameStatusBar(props) {
 
 export function EndGameModal(props) {
     const loading = props.loading;
-    const quitGame = props.quitGame;
+    const onError = props.onError;
+    const handleClick = props.handleClick;
     const deltaCoins = props.deltaCoins;
     const ended = props.ended;
     const hiddenPhrase = props.hiddenPhrase;
     const correct = props.correct;
-
-    const handleClick = async () => {
-        await quitGame(gameID);
-        navigate("/");
-    };
 
     return (
         <Modal show={ended} centered>
@@ -157,6 +145,7 @@ export function EndGameModal(props) {
                 </Modal.Title>
             </Modal.Header>
             <Modal.Body className="d-flex flex-column align-items-center justify-content-center text-center">
+                { onError && ( <Alert variant="warning">{onError}</Alert> ) }
                 {correct && 
                     <div className="d-flex align-items-center gap-2 mb-3">
                         <p className="righteous-font fs-5 mb-0">You earned {deltaCoins} coins!</p>
@@ -166,8 +155,8 @@ export function EndGameModal(props) {
                 <p className="righteous-font fs-5">The phrase was:</p>
                 <p className="righteous-font fs-2">{hiddenPhrase.text}</p>
                 <p className="righteous-font fs-5">from the movie {hiddenPhrase.film}</p>
-                <Button className="mx-3 w-auto righteous-font" variant="success" onClick={handleClick}>
-                    {loading ? (
+                <Button className="m-4 w-auto righteous-font" variant="secondary" onClick={handleClick}>
+                    {(loading>0) ? (
                     <span>
                         <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true"/>
                     </span>
@@ -188,6 +177,7 @@ export function GamePage(props) {
     const setLoading = props.setLoading;
     const loading = props.loading;
     const quitGame = props.quitGame;
+    const checkAuth = props.checkAuth;
 
     const [game, setGame] = useState(null);
     const [letterCosts, setLetterCosts] = useState([]);
@@ -199,17 +189,22 @@ export function GamePage(props) {
     const [coinsUpdated, setCoinsUpdated] = useState(false);
     const [time, setTime] = useState(60);
 
+    const navigate = useNavigate();
+
     const fetchLetters = async () => {
         try {
+            setLoading(prev => prev+1);
             setLetterCosts(await getLettersCost());
         } catch (error) {
             setError("Error in fetching letter costs");
+        } finally {
+            setLoading(prev => Math.max(0, prev-1));
         }
     };
 
     const fetchGame = async (gameID) => {
         try {
-            setLoading(true);
+            setLoading(prev => prev+1);
             setError(null);
             if (gameID) {
                 setGame(await getGame(gameID));
@@ -220,7 +215,7 @@ export function GamePage(props) {
         } catch (error) {
             setError("Error in fetching the game");
         } finally {
-            setLoading(false);
+            setLoading(prev => Math.max(0, prev-1));
         }
     };
 
@@ -228,7 +223,7 @@ export function GamePage(props) {
         try {
             setCorrect(false);
             setUncorrect(false);
-            setLoading(true);
+            setLoading(prev => prev+1);
             const gameMessage = await guessPhrase(gameID, text);
             if (gameMessage.correct){
                 setCorrect(true);
@@ -245,7 +240,7 @@ export function GamePage(props) {
         } catch (error) {
             setError("Error in guessing the phrase");
         } finally {
-            setLoading(false);
+            setLoading(prev => Math.max(0, prev-1));
         }
     };
 
@@ -253,7 +248,7 @@ export function GamePage(props) {
         try {
             setCorrect(false);
             setUncorrect(false);
-            setLoading(true);
+            setLoading(prev => prev+1);
             const gameMessage = await guessLetter(gameID, letter);
             if (gameMessage.correct){
                 setCorrect(true);
@@ -270,19 +265,24 @@ export function GamePage(props) {
         } catch (error) {
             setError("Error in guessing the letter");
         } finally {
-            setLoading(false);
+            setLoading(prev => Math.max(0, prev-1));
         }
     };
 
     const updateUser = async (username, gameID) => {
         try {
-            setLoading(true);
+            setLoading(prev => prev+1);
             await updateUserCoins(username, gameID);
         } catch (error) {
             setError("Error in updating user coins");
         } finally {
-            setLoading(false);
+            setLoading(prev => Math.max(0, prev-1));
         }
+    };
+
+    const exitButtonAction = async () => {
+        await quitGame(gameID);
+        navigate("/");
     };
 
     useEffect(() => {
@@ -295,13 +295,12 @@ export function GamePage(props) {
 
     useEffect(() => {
         if (ended && user && !coinsUpdated) {
-            updateUser(user.username, gameID);
+            updateUser(user.username, gameID).then(checkAuth);
             setCoinsUpdated(true);
         }
     }, [ended, user, gameID, coinsUpdated]);
 
-
-    if (loading && !ended) {
+    if (loading>0 && !ended) {
         return (
             <Container className="page-center">
                 <Spinner as="span" animation="border" size="lg" role="status" aria-hidden="true"/>
@@ -319,9 +318,8 @@ export function GamePage(props) {
 
     return (
         <Container className="mt-4 mb-4">
-            <EndGameModal 
-                ended={ended} hiddenPhrase={hiddenPhrase} correct={correct} deltaCoins={deltaCoins} quitGame={quitGame} loading={loading}/>
-            { onError && ( <Alert variant="warning">{onError}</Alert> ) }
+            <EndGameModal ended={ended} hiddenPhrase={hiddenPhrase} correct={correct} deltaCoins={deltaCoins} loading={loading} onError={onError} handleClick={exitButtonAction}/>
+            { onError && !ended && ( <Alert variant="warning">{onError}</Alert> ) }
             { correct && !ended && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="success">
                     <p className="righteous-font mb-0">Correct! You spent {deltaCoins} coins</p>
@@ -337,7 +335,7 @@ export function GamePage(props) {
             <Row className="justify-content-center">
                 <Col md={12}>
                     <Card className="bg-dark mb-4 pb-4 px-5 pt-4">
-                        <GameStatusBar gameID={gameID} coins={game.coins} time={time} quitGame={quitGame} />
+                        <GameStatusBar coins={game.coins} time={time} handleClick={exitButtonAction} />
                         <PhraseViewer revealed={game.revealed} />
                     </Card>
                 </Col>
