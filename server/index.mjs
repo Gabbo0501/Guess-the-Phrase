@@ -182,12 +182,14 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
 
     if (phrase.text.toUpperCase() === presumedPhrase.toUpperCase()) {
       game.ended = 1;
+      game.win = 1;
       game.coins += 100;
       await dao.updateGame(gameID, game);
       return res.json(new GameMessage(true, 100, phrase));
     }
     else {
       game.ended = 1;
+      game.win = 0;
       await dao.updateGame(gameID, game);
       return res.json(new GameMessage(false, 0, phrase));
     }
@@ -257,6 +259,7 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
 
     if (phrase.text.toUpperCase() === game.revealed.toUpperCase()) {
       game.ended = 1;
+      game.win = 1;
       game.coins += 100;
       coinUpdate += 100;
       hiddenPhrase = phrase;
@@ -266,6 +269,34 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
     res.json(new GameMessage(correct, coinUpdate, hiddenPhrase));
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.patch('/api/game/:id/expiredTime', async (req, res) => {
+  const gameID = req.params.id;
+  const username = req.user ? req.user.username : null;
+
+  try {
+    const game = await dao.getGame(gameID);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    if (game.username !== username) {
+      return res.status(403).json({ error: 'Not authorized to access this game' });
+    }
+
+    const phrase = await dao.getPhrase(game.phraseId);
+    if (!phrase) {
+      return res.status(404).json({ error: "Phrase not found" });
+    }
+
+    game.coins -= 60;
+    game.ended = 1;
+    game.win = 0;
+    await dao.updateGame(gameID, game);
+    res.json(new GameMessage(false, -60, phrase));
+  } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
 });

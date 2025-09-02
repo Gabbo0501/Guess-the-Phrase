@@ -83,7 +83,7 @@ export const getGame = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new Game(data.revealed, data.coins, data.vowelUsed, data.usedLetters, data.ended);
+    return new Game(data.revealed, data.coins, data.vowelUsed, data.usedLetters, data.ended, data.win);
 }
 
 export const guessPhrase = async (gameID, phrase) => {
@@ -119,7 +119,7 @@ export const guessLetter = async (gameID, letter) => {
 
 export const expiredTime = async (gameID) => {
     const response = await fetch(`${SERVER_URL}/api/game/${gameID}/expiredTime`, {
-        method: 'POST',
+        method: 'PATCH',
         credentials: 'include',
         headers: { "Content-Type": "application/json" },
     });
@@ -127,6 +127,7 @@ export const expiredTime = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
+    return new GameMessage(data.correct, data.coinUpdate, new Phrase(data.hiddenPhrase.text, data.hiddenPhrase.film));
 }
 
 export const deleteGame = async (gameID) => {

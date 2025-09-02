@@ -14,7 +14,7 @@ export class Phrase {
 }
 
 export class Game {
-    constructor(phraseId, username, revealed, coins, vowelUsed, usedLetters, ended) {
+    constructor(phraseId, username, revealed, coins, vowelUsed, usedLetters, ended, win) {
         this.phraseId = phraseId;
         this.username = username;
         this.revealed = revealed;
@@ -22,6 +22,7 @@ export class Game {
         this.vowelUsed = vowelUsed;
         this.usedLetters = usedLetters;
         this.ended = ended;
+        this.win = win;
     }
 }
 

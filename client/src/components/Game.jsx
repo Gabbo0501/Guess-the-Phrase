@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Button, Badge, Container, Alert, Spinner, Card, Form, Row, Col, Modal, OverlayTrigger, Tooltip } from "react-bootstrap";
-import { getLettersCost, getGame, guessLetter, guessPhrase, updateUserCoins } from "../API/API.mjs";
+import { Button, Badge, Container, Alert, Spinner, Card, Form, Row, Col, Modal } from "react-bootstrap";
+import { getLettersCost, getGame, guessLetter, guessPhrase, updateUserCoins, expiredTime } from "../API/API.mjs";
 
 export function LetterSelector(props) {
-    const game = props.game;
+    const usedLetters = props.usedLetters;
+    const vowelUsed = props.vowelUsed;
+    const coins = props.coins;
     const letterCosts = props.letterCosts;
     const letterSubmit = props.letterSubmit;
 
@@ -15,9 +17,9 @@ export function LetterSelector(props) {
         return alphabet.map(letter => {
             const cost = letterCosts[letter];
             const isVowel = vowels.includes(letter);
-            const isUsed = game.usedLetters.split("").includes(letter);
-            const cannotUseVowel = isVowel && game.vowelUsed && !isUsed;
-            const notEnoughCoins = game.coins < cost*2 && !isUsed;
+            const isUsed = usedLetters.split("").includes(letter);
+            const cannotUseVowel = isVowel && vowelUsed && !isUsed;
+            const notEnoughCoins = coins < cost*2 && !isUsed;
 
             let btnClass = "letter-btn";
             if (isUsed) btnClass += " used";
@@ -119,7 +121,11 @@ function PhraseViewer(props) {
 
 function GameStatusBar(props) {
     const coins = props.coins;
-    const time = props.time;
+    const ended = props.ended;
+    const timeLeft = props.timeLeft;
+    const setTimeLeft = props.setTimeLeft;
+    const stop = props.stop;
+    const setStop = props.setStop;
     const handleClick = props.handleClick;
 
     return (
@@ -131,7 +137,7 @@ function GameStatusBar(props) {
                 </div>
                 <div className="d-flex flex-column align-items-start">
                     <p className="righteous-font text-light fs-5 mb-1">Time</p>
-                    <p className="righteous-font text-light fs-1 mt-0">{time}</p>
+                    <Timer timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} ended={ended} />
                 </div>
             </div>
             <Button className="righteous-font" variant="danger" onClick={handleClick}>
@@ -142,27 +148,34 @@ function GameStatusBar(props) {
 }
 
 export function EndGameModal(props) {
+    const coins = props.coins;
+    const deltaCoins = props.deltaCoins;
+    const win = props.win;
+    const ended = props.ended;
+    const runOutOfTime = props.runOutOfTime;
+    const hiddenPhrase = props.hiddenPhrase;
     const loading = props.loading;
     const onError = props.onError;
     const handleClick = props.handleClick;
-    const deltaCoins = props.deltaCoins;
-    const ended = props.ended;
-    const hiddenPhrase = props.hiddenPhrase;
-    const correct = props.correct;
-    const coins = props.coins;
 
     return (
         <Modal show={ended} centered>
-            <Modal.Header className={correct ? "bg-success justify-content-center" : "bg-red justify-content-center"}>
+            <Modal.Header className={game.win ? "bg-success justify-content-center" : "bg-red justify-content-center"}>
                 <Modal.Title className="righteous-font fs-1 text-white">
-                    { correct ? "Winner!" : "Game Over!" }
+                    { game.win ? "Winner!" : "Game Over!" }
                 </Modal.Title>
             </Modal.Header>
             <Modal.Body className="d-flex flex-column align-items-center justify-content-center text-center">
                 { onError && ( <Alert variant="warning">{onError}</Alert> ) }
-                { correct && 
+                { win && 
                     <div className="d-flex align-items-center gap-2">
                         <p className="righteous-font fs-5 mb-0">You earned {Math.abs(deltaCoins)} coins!</p>
+                        <div className="coin-badge"></div>
+                    </div>
+                }
+                { runOutOfTime && 
+                    <div className="d-flex align-items-center gap-2">
+                        <p className="righteous-font fs-5 mb-0">You run out of time! You spent {Math.abs(deltaCoins)} coins!</p>
                         <div className="coin-badge"></div>
                     </div>
                 }
@@ -182,6 +195,30 @@ export function EndGameModal(props) {
     );
 }
 
+export function Timer(props) {
+    const timeLeft = props.timeLeft;
+    const setTimeLeft = props.setTimeLeft;
+    const stop = props.stop;
+    const setStop = props.setStop;
+    const ended = props.ended;
+
+    useEffect(() => {
+        if (stop || ended) return;
+        if (timeLeft <= 0) {
+            setStop(true);
+            return;
+        }
+        const interval = setInterval(() => {
+            setTimeLeft(prev => prev - 1);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [stop, timeLeft, setTimeLeft, setStop]);
+
+    return (
+        <p className="righteous-font text-light fs-1 mt-0">{timeLeft}</p>
+    );
+}
+
 export function GamePage(props) {
     const user = props.user;
     const gameID = props.gameID;
@@ -194,13 +231,15 @@ export function GamePage(props) {
 
     const [game, setGame] = useState(null);
     const [letterCosts, setLetterCosts] = useState([]);
-    const [correct, setCorrect] = useState(false);
-    const [uncorrect, setUncorrect] = useState(false);
+    const [correctHyp, setCorrectHyp] = useState(false);
+    const [uncorrectHyp, setUncorrectHyp] = useState(false);
     const [ended, setEnded] = useState(false);
     const [hiddenPhrase, setHiddenPhrase] = useState("");
     const [deltaCoins, setDeltaCoins] = useState(0);
     const [coinsUpdated, setCoinsUpdated] = useState(false);
-    const [time, setTime] = useState(60);
+    const [timeLeft, setTimeLeft] = useState(60);
+    const [runOutOfTime, setRunOutOfTime] = useState(false);
+    const [stop, setStop] = useState(false);
 
     const navigate = useNavigate();
 
@@ -234,28 +273,21 @@ export function GamePage(props) {
 
     const textSubmit = async (text) => {
         try {
-            setCorrect(false);
-            setUncorrect(false);
+            setCorrectHyp(false);
+            setUncorrectHyp(false);
             setLoading(prev => prev+1);
 
             const gameMessage = await guessPhrase(gameID, text);
             const updatedGame = await getGame(gameID);
             setGame(updatedGame);
 
-            if (gameMessage.correct){
-                setCorrect(true);
-            } else {
-                setUncorrect(true);
-            }
+            if (!updatedGame.ended) throw new Error("Game has not ended");
+            setEnded(true);
+            
             setDeltaCoins(gameMessage.coinUpdate);
-
-            if (updatedGame.ended) {
-                setEnded(true);
-                setHiddenPhrase(gameMessage.hiddenPhrase);
-            }
+            setHiddenPhrase(gameMessage.hiddenPhrase);
         } catch (error) {
             setError("Error in guessing the phrase");
-            console.error(error);
         } finally {
             setLoading(prev => Math.max(0, prev-1));
         }
@@ -263,28 +295,49 @@ export function GamePage(props) {
 
     const letterSubmit = async (letter) => {
         try {
-            setCorrect(false);
-            setUncorrect(false);
+            setCorrectHyp(false);
+            setUncorrectHyp(false);
             setLoading(prev => prev+1);
 
             const gameMessage = await guessLetter(gameID, letter);
             const updatedGame = await getGame(gameID);
             setGame(updatedGame);
 
-            if (gameMessage.correct){
-                setCorrect(true);
-            } else {
-                setUncorrect(true);
-            }
             setDeltaCoins(gameMessage.coinUpdate);
-
             if (updatedGame.ended) {
                 setEnded(true);
                 setHiddenPhrase(gameMessage.hiddenPhrase);
+            } else {
+                if (gameMessage.correct){
+                    setCorrectHyp(true);
+                } else {
+                    setUncorrectHyp(true);
+                }
             }
         } catch (error) {
             setError("Error in guessing the letter");
-            console.error(error);
+        } finally {
+            setLoading(prev => Math.max(0, prev-1));
+        }
+    };
+
+    const handleExpiredTime = async() => {
+        try {
+            setCorrectHyp(false);
+            setUncorrectHyp(false);
+            setLoading(prev => prev+1);
+            
+            const gameMessage = await expiredTime(gameID);
+            const updatedGame = await getGame(gameID);
+            setGame(updatedGame);
+
+            if (!updatedGame.ended) throw new Error("Game has not ended");
+            setEnded(true);
+
+            setDeltaCoins(gameMessage.coinUpdate);
+            setHiddenPhrase(gameMessage.hiddenPhrase);
+        } catch (error) {
+            setError("Error in running out of time");
         } finally {
             setLoading(prev => Math.max(0, prev-1));
         }
@@ -307,6 +360,7 @@ export function GamePage(props) {
         navigate("/");
     };
 
+
     useEffect(() => {
         fetchGame(gameID);
     }, [gameID]);
@@ -321,6 +375,15 @@ export function GamePage(props) {
             setCoinsUpdated(true);
         }
     }, [ended, gameID]);
+
+    useEffect(() => {
+        if (stop && !runOutOfTime && !ended) {
+            setRunOutOfTime(true);
+            handleExpiredTime();
+        }
+    }, [stop, runOutOfTime, ended]);
+
+
 
     if (loading>0 && !ended) {
         return (
@@ -340,15 +403,15 @@ export function GamePage(props) {
 
     return (
         <Container className="mt-4 mb-4">
-            <EndGameModal ended={ended} hiddenPhrase={hiddenPhrase} correct={correct} coins={game.coins} deltaCoins={deltaCoins} loading={loading} onError={onError} handleClick={exitButtonAction}/>
+            <EndGameModal coins={game.coins} deltaCoins={deltaCoins} win={game.win===1} ended={ended} runOutOfTime={runOutOfTime} hiddenPhrase={hiddenPhrase} loading={loading} onError={onError} handleClick={exitButtonAction}/>
             { onError && !ended && ( <Alert variant="warning">{onError}</Alert> ) }
-            { correct && !ended && ( 
+            { correctHyp && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="success">
                     <p className="righteous-font mb-0">Correct! You spent {Math.abs(deltaCoins)} coins</p>
                     <div className="coin-badge"></div>
                 </Alert> 
             )}
-            { uncorrect && !ended && ( 
+            { uncorrectHyp && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="danger">
                     <p className="righteous-font mb-0">Incorrect! You spent {Math.abs(deltaCoins)} coins</p>
                     <div className="coin-badge"></div>
@@ -357,14 +420,14 @@ export function GamePage(props) {
             <Row className="justify-content-center">
                 <Col md={12}>
                     <Card className="bg-dark mb-4 pb-4 px-5 pt-4">
-                        <GameStatusBar coins={game.coins} time={time} handleClick={exitButtonAction} />
+                        <GameStatusBar ended={ended} coins={game.coins} timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} handleClick={exitButtonAction} />
                         <PhraseViewer revealed={game.revealed} />
                     </Card>
                 </Col>
             </Row>
             <Row className="justify-content-center">
                 <Col md={7} lg={7}>
-                    <LetterSelector game={game} letterCosts={letterCosts} letterSubmit={letterSubmit} />
+                    <LetterSelector usedLetters={game.usedLetters} vowelUsed={game.vowelUsed} coins={game.coins} letterCosts={letterCosts} letterSubmit={letterSubmit} />
                 </Col>
                 <Col md={5} lg={5}>
                     <GuessPhraseBox textSubmit={textSubmit} />

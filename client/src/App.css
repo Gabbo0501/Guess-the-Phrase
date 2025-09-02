@@ -11,10 +11,6 @@
   text-align: center;
 }
 
-.read-the-docs {
-  color: #888;
-}
-
 html, body, #root {
   height: 100%;
 }
@@ -95,7 +91,7 @@ html, body, #root {
 
 
 /* =========================
-  Utility
+  Attributi Generali
 ========================= */
 
 .bg-red {
