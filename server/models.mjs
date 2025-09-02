@@ -14,13 +14,13 @@ export class Phrase {
 }
 
 export class Game {
-    constructor(phraseId, username, revealed, coins, vowelUsed, guessedLetters, ended) {
+    constructor(phraseId, username, revealed, coins, vowelUsed, usedLetters, ended) {
         this.phraseId = phraseId;
         this.username = username;
         this.revealed = revealed;
         this.coins = coins;
         this.vowelUsed = vowelUsed;
-        this.guessedLetters = guessedLetters;
+        this.usedLetters = usedLetters;
         this.ended = ended;
     }
 }

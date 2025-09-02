@@ -106,6 +106,47 @@ html, body, #root {
   justify-content: center;
 }
 
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  margin: 0;
+  padding: 0;
+}
+
+.custom-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  background: #ffc107;
+  text-align: center;
+  border-radius: 8px;
+  padding: 6px 14px;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.9rem;
+  font-family: "Righteous", sans-serif;
+  transition: opacity 0.18s;
+  white-space: nowrap;
+}
+
+.custom-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 7px;
+  border-style: solid;
+  border-color: #ffc107 transparent transparent transparent;
+}
+
+.tooltip-wrapper:hover .custom-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
 .letter-btn {
   min-width: 70px;
   min-height: 70px;
@@ -136,7 +177,7 @@ html, body, #root {
   cursor: not-allowed;
 }
 
-.letter-btn:hover:not(:disabled):not(.guessed) {
+.letter-btn:hover:not(:disabled):not(.used) {
   background-color: #831e26;
   color: #fff;
   transform: scale(1.08);

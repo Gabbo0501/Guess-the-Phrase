@@ -33,6 +33,15 @@ export function getAllLetters() {
     });
 }
 
+export function getLetterCost(letter) {
+    return new Promise((resolve, reject) => {
+        db.get("SELECT cost FROM Letters WHERE letter = ?", [letter], (err, row) => {
+            if (err) return reject(err);
+            resolve(row.cost);
+        });
+    });
+}
+
 export function getUserCoins(username) {
     return new Promise((resolve, reject) => {
         db.get("SELECT coins FROM Users WHERE username = ?", [username], (err, row) => {
@@ -72,7 +81,7 @@ export function getPhrase(id) {
 export function createGame(game) {
     return new Promise((resolve, reject) => {
         db.run(
-            "INSERT INTO Games (phraseId, username, revealed, coins, vowelUsed, guessedLetters, ended) VALUES (?, ?, ?, ?, ?, ?, ?)", [game.phraseId, game.username, game.revealed, game.coins, game.vowelUsed, game.guessedLetters, game.ended], function(err) {
+            "INSERT INTO Games (phraseId, username, revealed, coins, vowelUsed, usedLetters, ended) VALUES (?, ?, ?, ?, ?, ?, ?)", [game.phraseId, game.username, game.revealed, game.coins, game.vowelUsed, game.usedLetters, game.ended], function(err) {
                 if (err) return reject(err);
                 resolve(this.lastID);
             }
@@ -85,7 +94,7 @@ export function getGame(id) {
         db.get("SELECT * FROM Games WHERE id = ?", [id], (err, row) => {
             if (err) return reject(err);
             if (!row) return resolve(null);
-            resolve(new Game(row.phraseId, row.username, row.revealed, row.coins, row.vowelUsed, row.guessedLetters, row.ended));
+            resolve(new Game(row.phraseId, row.username, row.revealed, row.coins, row.vowelUsed, row.usedLetters, row.ended));
         });
     });
 }
@@ -93,7 +102,7 @@ export function getGame(id) {
 export function updateGame(id, game) {
     return new Promise((resolve, reject) => {
         db.run(
-            "UPDATE Games SET revealed = ?, coins = ?, vowelUsed = ?, guessedLetters = ?, ended = ? WHERE id = ?", [game.revealed, game.coins, game.vowelUsed, game.guessedLetters, game.ended, id], function(err) {
+            "UPDATE Games SET revealed = ?, coins = ?, vowelUsed = ?, usedLetters = ?, ended = ? WHERE id = ?", [game.revealed, game.coins, game.vowelUsed, game.usedLetters, game.ended, id], function(err) {
                 if (err) return reject(err);
                 resolve();
             }

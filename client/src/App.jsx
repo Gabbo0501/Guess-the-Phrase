@@ -55,7 +55,6 @@ function App() {
       setLoading(prev => prev+1);
       const user = await getUserInfo();
       setUser(user);
-      console.log("User updated:", user); 
     } catch {
       setUser(null);
     } finally {

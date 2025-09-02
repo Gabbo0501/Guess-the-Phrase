@@ -132,11 +132,11 @@ app.post('/api/game', async (req, res) => {
     }
 
     let revealed = phrase.text.replace(/[A-Z]/g, "_");
-    let guessedLetters = "";
+    let usedLetters = "";
     let vowelUsed = 0;
     let ended = 0;
 
-    const game = new Game(phraseId, username, revealed, startingCoins, vowelUsed, guessedLetters, ended);
+    const game = new Game(phraseId, username, revealed, startingCoins, vowelUsed, usedLetters, ended);
     const gameID = await dao.createGame(game);
     res.status(201).json(gameID);
   } catch (error) {
@@ -188,11 +188,84 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
     }
     else {
       game.ended = 1;
-      game.coins -= 10;
       await dao.updateGame(gameID, game);
-      return res.json(new GameMessage(false, -10, phrase));
+      return res.json(new GameMessage(false, 0, phrase));
     }
   } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.patch('/api/game/:id/guessLetter', async (req, res) => {
+  const gameID = req.params.id;
+  const letter = req.body.letter;
+  const username = req.user ? req.user.username : null;
+
+  try {
+    const game = await dao.getGame(gameID);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    if (game.username !== username) {
+      return res.status(403).json({ error: 'Not authorized to access this game' });
+    }
+
+    const phrase = await dao.getPhrase(game.phraseId);
+    if (!phrase || !phrase.text) {
+      return res.status(404).json({ error: "Phrase not found" });
+    }
+
+    const cost = await dao.getLetterCost(letter);
+    if (game.coins < cost) {
+      return res.status(400).json({ error: 'Not enough coins' });
+    }
+    if (game.usedLetters.includes(letter)) {
+      return res.status(400).json({ error: 'Letter already guessed' });
+    }
+
+    game.usedLetters += letter;
+    if (cost === 10){
+      game.vowelUsed = 1;
+    }
+
+    let correct = false;
+    let coinUpdate = 0;
+    let hiddenPhrase = null;
+
+    if (phrase.text.toUpperCase().includes(letter.toUpperCase())) {
+      game.coins -= cost;
+      correct = true;
+      coinUpdate -= cost;
+
+      const positions = [];
+      for (let i = 0; i < phrase.text.length; i++) {
+        if (phrase.text[i].toUpperCase() === letter.toUpperCase()) {
+          positions.push(i);
+        }
+      }
+      let revealedArr = game.revealed.split('');
+      positions.forEach(pos => {
+        revealedArr[pos] = letter;
+      });
+      game.revealed = revealedArr.join('');
+
+    } else {
+      game.coins -= cost*2;
+      correct = false;
+      coinUpdate -= cost*2;
+    }
+
+    if (phrase.text.toUpperCase() === game.revealed.toUpperCase()) {
+      game.ended = 1;
+      game.coins += 100;
+      coinUpdate += 100;
+      hiddenPhrase = phrase;
+    }
+
+    await dao.updateGame(gameID, game);
+    res.json(new GameMessage(correct, coinUpdate, hiddenPhrase));
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

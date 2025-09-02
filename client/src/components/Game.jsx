@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Button, Badge, Container, Alert, Spinner, Card, Form, Row, Col, Modal } from "react-bootstrap";
+import { Button, Badge, Container, Alert, Spinner, Card, Form, Row, Col, Modal, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { getLettersCost, getGame, guessLetter, guessPhrase, updateUserCoins } from "../API/API.mjs";
 
 export function LetterSelector(props) {
@@ -15,26 +15,34 @@ export function LetterSelector(props) {
         return alphabet.map(letter => {
             const cost = letterCosts[letter];
             const isVowel = vowels.includes(letter);
-            const isGuessed = game.guessedLetters.split("").includes(letter);
-            const cannotUseVowel = isVowel && game.vowelUsed && !isGuessed;
-            const notEnoughCoins = game.coins < cost;
+            const isUsed = game.usedLetters.split("").includes(letter);
+            const cannotUseVowel = isVowel && game.vowelUsed && !isUsed;
+            const notEnoughCoins = game.coins < cost*2 && !isUsed;
 
             let btnClass = "letter-btn";
-            if (isGuessed) btnClass += " guessed";
+            if (isUsed) btnClass += " used";
             if (isVowel) btnClass += " vowel";
-            if (cannotUseVowel || notEnoughCoins || isGuessed) btnClass += " disabled";
+            if (cannotUseVowel || notEnoughCoins || isUsed) btnClass += " disabled";
+
+            const isDisabled = cannotUseVowel || notEnoughCoins || isUsed;
+            let disableReason = "";
+            if (isUsed) disableReason = "Already used";
+            else if (notEnoughCoins) disableReason = "Not enough coins";
+            else if (cannotUseVowel) disableReason = "You can use only one vowel per game";
 
             return (
+              <span className="tooltip-wrapper" key={letter}>
                 <Button
-                    key={letter}
-                    size="md"
-                    className={btnClass}
-                    disabled={isGuessed || notEnoughCoins || cannotUseVowel}
-                    onClick={async () => { await letterSubmit(letter); }}
+                  size="md"
+                  className={btnClass}
+                  disabled={isUsed || notEnoughCoins || cannotUseVowel}
+                  onClick={async () => { await letterSubmit(letter); }}
                 >
-                    <span className="righteous-font">{letter}</span>
-                    <Badge className="coin-badge">{cost}</Badge>
+                  <div className="righteous-font">{letter}</div>
+                  <Badge className="coin-badge">{cost}</Badge>
                 </Button>
+                {isDisabled && <div className="custom-tooltip">{disableReason}</div>}
+              </span>
             );
         });
     };
@@ -129,6 +137,7 @@ function GameStatusBar(props) {
 }
 
 export function EndGameModal(props) {
+    const user = props.user;
     const loading = props.loading;
     const onError = props.onError;
     const handleClick = props.handleClick;
@@ -136,30 +145,30 @@ export function EndGameModal(props) {
     const ended = props.ended;
     const hiddenPhrase = props.hiddenPhrase;
     const correct = props.correct;
+    const coins = props.coins;
 
     return (
         <Modal show={ended} centered>
             <Modal.Header className={correct ? "bg-success justify-content-center" : "bg-red justify-content-center"}>
                 <Modal.Title className="righteous-font fs-1 text-white">
-                    {correct ? "Winner!" : "Game Over!"}
+                    { correct ? "Winner!" : "Game Over!" }
                 </Modal.Title>
             </Modal.Header>
             <Modal.Body className="d-flex flex-column align-items-center justify-content-center text-center">
                 { onError && ( <Alert variant="warning">{onError}</Alert> ) }
-                {correct && 
-                    <div className="d-flex align-items-center gap-2 mb-3">
-                        <p className="righteous-font fs-5 mb-0">You earned {deltaCoins} coins!</p>
+                { correct && 
+                    <div className="d-flex align-items-center gap-2">
+                        <p className="righteous-font fs-5 mb-0">You earned {Math.abs(deltaCoins)} coins!</p>
                         <div className="coin-badge"></div>
                     </div>
                 }
+                <p className="righteous-font-light">{"Balance: " + ((coins - 100) > 0 ? ("+" + (coins - 100)) : (coins - 100)) + " coins"}</p>
                 <p className="righteous-font fs-5">The phrase was:</p>
                 <p className="righteous-font fs-2">{hiddenPhrase.text}</p>
                 <p className="righteous-font fs-5">from the movie {hiddenPhrase.film}</p>
-                <Button className="m-4 w-auto righteous-font" variant="secondary" onClick={handleClick}>
+                <Button className="m-4 w-auto righteous-font" variant="secondary" onClick={handleClick} disabled={loading>0}>
                     {(loading>0) ? (
-                    <span>
-                        <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true"/>
-                    </span>
+                        <Spinner animation="border" size="sm" role="status" aria-hidden="true"/>
                     ) : (
                         "Back to Home"
                     )}
@@ -224,21 +233,25 @@ export function GamePage(props) {
             setCorrect(false);
             setUncorrect(false);
             setLoading(prev => prev+1);
+
             const gameMessage = await guessPhrase(gameID, text);
+            const updatedGame = await getGame(gameID);
+            setGame(updatedGame);
+
             if (gameMessage.correct){
                 setCorrect(true);
             } else {
                 setUncorrect(true);
             }
             setDeltaCoins(gameMessage.coinUpdate);
-            const updatedGame = await getGame(gameID);
-            setGame(updatedGame);
+
             if (updatedGame.ended) {
                 setEnded(true);
                 setHiddenPhrase(gameMessage.hiddenPhrase);
             }
         } catch (error) {
             setError("Error in guessing the phrase");
+            console.error(error);
         } finally {
             setLoading(prev => Math.max(0, prev-1));
         }
@@ -249,21 +262,25 @@ export function GamePage(props) {
             setCorrect(false);
             setUncorrect(false);
             setLoading(prev => prev+1);
+
             const gameMessage = await guessLetter(gameID, letter);
+            const updatedGame = await getGame(gameID);
+            setGame(updatedGame);
+
             if (gameMessage.correct){
                 setCorrect(true);
             } else {
                 setUncorrect(true);
             }
             setDeltaCoins(gameMessage.coinUpdate);
-            const updatedGame = await getGame(gameID);
-            setGame(updatedGame);
+
             if (updatedGame.ended) {
                 setEnded(true);
                 setHiddenPhrase(gameMessage.hiddenPhrase);
             }
         } catch (error) {
             setError("Error in guessing the letter");
+            console.error(error);
         } finally {
             setLoading(prev => Math.max(0, prev-1));
         }
@@ -275,6 +292,7 @@ export function GamePage(props) {
             await updateUserCoins(username, gameID);
         } catch (error) {
             setError("Error in updating user coins");
+            console.error(error);
         } finally {
             setLoading(prev => Math.max(0, prev-1));
         }
@@ -298,12 +316,12 @@ export function GamePage(props) {
             updateUser(user.username, gameID).then(checkAuth);
             setCoinsUpdated(true);
         }
-    }, [ended, user, gameID, coinsUpdated]);
+    }, [ended, gameID]);
 
     if (loading>0 && !ended) {
         return (
             <Container className="page-center">
-                <Spinner as="span" animation="border" size="lg" role="status" aria-hidden="true"/>
+                <Spinner animation="border" size="lg" role="status" aria-hidden="true"/>
             </Container>
         );
     }
@@ -318,17 +336,17 @@ export function GamePage(props) {
 
     return (
         <Container className="mt-4 mb-4">
-            <EndGameModal ended={ended} hiddenPhrase={hiddenPhrase} correct={correct} deltaCoins={deltaCoins} loading={loading} onError={onError} handleClick={exitButtonAction}/>
+            <EndGameModal user={user} ended={ended} hiddenPhrase={hiddenPhrase} correct={correct} coins={game.coins} deltaCoins={deltaCoins} loading={loading} onError={onError} handleClick={exitButtonAction}/>
             { onError && !ended && ( <Alert variant="warning">{onError}</Alert> ) }
             { correct && !ended && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="success">
-                    <p className="righteous-font mb-0">Correct! You spent {deltaCoins} coins</p>
+                    <p className="righteous-font mb-0">Correct! You spent {Math.abs(deltaCoins)} coins</p>
                     <div className="coin-badge"></div>
                 </Alert> 
             )}
             { uncorrect && !ended && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="danger">
-                    <p className="righteous-font mb-0">Incorrect! You spent {deltaCoins} coins</p>
+                    <p className="righteous-font mb-0">Incorrect! You spent {Math.abs(deltaCoins)} coins</p>
                     <div className="coin-badge"></div>
                 </Alert> 
             )}

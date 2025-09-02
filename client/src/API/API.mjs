@@ -83,7 +83,7 @@ export const getGame = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new Game(data.revealed, data.coins, data.vowelUsed, data.guessedLetters, data.ended);
+    return new Game(data.revealed, data.coins, data.vowelUsed, data.usedLetters, data.ended);
 }
 
 export const guessPhrase = async (gameID, phrase) => {
@@ -111,7 +111,10 @@ export const guessLetter = async (gameID, letter) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new GameMessage(data.correct, data.coinUpdate, new Phrase(data.hiddenPhrase.text, data.hiddenPhrase.film));
+    if (data.hiddenPhrase) {
+        return new GameMessage(data.correct, data.coinUpdate, new Phrase(data.hiddenPhrase.text, data.hiddenPhrase.film));
+    }
+    return new GameMessage(data.correct, data.coinUpdate, null);
 }
 
 export const expiredTime = async (gameID) => {

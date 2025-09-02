@@ -7,17 +7,15 @@ function StartButton(props){
   const handleClick = props.handleClick;
 
   return (
-      <Button className="mx-3 w-auto righteous-font" variant="success" onClick={handleClick}>
+      <Button className="mx-3 w-auto righteous-font" variant="success" onClick={handleClick} disabled={loading>0}>
         {(loading>0) && (
-          <span>
-            <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true"/>
-          </span>
+            <Spinner animation="border" size="sm" role="status" aria-hidden="true"/>
         )}
         {(!loading) && user && (
-          <span>Start</span>
+          "Start"
         )}
         {(!loading) && !user && (
-          <span>Try</span>
+          "Try"
         )}
       </Button>
   );
