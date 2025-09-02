@@ -1,25 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
 
+/* =========================
+  Default
+========================= */
+
 #root {
   width: 100%;
   margin: 0;
   padding: 0;
   text-align: center;
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
 }
 
 .read-the-docs {
@@ -37,6 +26,27 @@ html, body, #root {
   flex-direction: column;
 }
 
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+
+
+/* =========================
+  Struttura Base
+========================= */
+
 .page-center {
   min-height: 80.5vh;
   display: flex;
@@ -44,6 +54,23 @@ html, body, #root {
   justify-content: center;
   align-items: center;
 }
+
+.outlet-container{
+  flex: 1;
+  background: #fff;
+  min-height: 100%;
+}
+
+.auth-form {
+  width: 60%;
+  margin: 0 auto;
+}
+
+
+
+/* =========================
+  Filmbar
+========================= */
 
 .filmbar {
   background: #212529;
@@ -65,24 +92,34 @@ html, body, #root {
   margin: 8px 0;
 }
 
-.auth-form {
-  width: 60%;
-  margin: 0 auto;
-}
+
+
+/* =========================
+  Utility
+========================= */
 
 .bg-red {
   background-color: #831e26;
   color: white;
 }
 
-.outlet-container{
-  flex: 1;
-  background: #fff;
-  min-height: 100%;
-}
-
 .bordered {
   border: 3px solid #212529;
+}
+
+.coin-badge {
+  background: radial-gradient(circle at 30% 30%, #ffe066 70%, #ffc107 100%);
+  color: #7a5a00;
+  border-radius: 50%;
+  min-width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.75rem;
+  box-shadow: 0 0 6px #ffc107;
+  border: 2px solid #fffbe6;
 }
 
 .righteous-font {
@@ -100,11 +137,19 @@ html, body, #root {
   opacity: 0.85;
 }
 
+
+
+/* =========================
+  LetterSelector
+========================= */
+
 .tastiera {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
 }
+
+/* - Tooltip - */
 
 .tooltip-wrapper {
   position: relative;
@@ -147,6 +192,8 @@ html, body, #root {
   opacity: 1;
 }
 
+/* - Lettere - */
+
 .letter-btn {
   min-width: 70px;
   min-height: 70px;
@@ -184,20 +231,10 @@ html, body, #root {
   border-color: #ffc107;
 }
 
-.coin-badge {
-  background: radial-gradient(circle at 30% 30%, #ffe066 70%, #ffc107 100%);
-  color: #7a5a00;
-  border-radius: 50%;
-  min-width: 25px;
-  height: 25px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 0.75rem;
-  box-shadow: 0 0 6px #ffc107;
-  border: 2px solid #fffbe6;
-}
+
+/* =========================
+  PhraseViewer
+========================= */
 
 .phrase-viewer {
   display: flex;
@@ -206,8 +243,16 @@ html, body, #root {
   gap: 0.7rem 1rem;
 }
 
-.phrase-letter {
-  display: inline-flex;
+.phrase-word {
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.phrase-letter,
+.phrase-letter.revealed {
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 40px;
@@ -216,6 +261,8 @@ html, body, #root {
   border-radius: 8px;
   font-size: 1.75rem;
   box-shadow: 0 0 6px #21252922;
+  margin: 0 4px;
+  font-family: "Righteous", sans-serif;
 }
 
 .phrase-letter.revealed {

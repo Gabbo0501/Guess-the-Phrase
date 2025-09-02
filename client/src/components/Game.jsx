@@ -96,18 +96,23 @@ function GuessPhraseBox(props) {
 }
 
 function PhraseViewer(props) {
-    const revealed = props.revealed || "";
+    const revealed = props.revealed;
+    const words = revealed.split(" ");
+
     return (
         <div className="phrase-viewer">
-            {revealed.split("").map((char, idx) =>
-                char === " " ? (
-                    <div key={idx} className="phrase-space"></div>
-                ) : char === "_" ? (
-                    <div key={idx} className="phrase-letter"></div>
-                ) : (
-                    <div key={idx} className="phrase-letter revealed righteous-font">{char}</div>
-                )
-            )}
+            {words.map((word, wIdx) => (
+                <span className="phrase-word" key={wIdx}>
+                    {word.split("").map((char, cIdx) =>
+                        char === "_" ? (
+                            <span key={cIdx} className="phrase-letter"></span>
+                        ) : (
+                            <span key={cIdx} className={`phrase-letter revealed righteous-font`}>{char}</span>
+                        )
+                    )}
+                    {wIdx < words.length - 1 && <span className="phrase-space"></span>}
+                </span>
+            ))}
         </div>
     );
 }
@@ -137,7 +142,6 @@ function GameStatusBar(props) {
 }
 
 export function EndGameModal(props) {
-    const user = props.user;
     const loading = props.loading;
     const onError = props.onError;
     const handleClick = props.handleClick;
@@ -336,7 +340,7 @@ export function GamePage(props) {
 
     return (
         <Container className="mt-4 mb-4">
-            <EndGameModal user={user} ended={ended} hiddenPhrase={hiddenPhrase} correct={correct} coins={game.coins} deltaCoins={deltaCoins} loading={loading} onError={onError} handleClick={exitButtonAction}/>
+            <EndGameModal ended={ended} hiddenPhrase={hiddenPhrase} correct={correct} coins={game.coins} deltaCoins={deltaCoins} loading={loading} onError={onError} handleClick={exitButtonAction}/>
             { onError && !ended && ( <Alert variant="warning">{onError}</Alert> ) }
             { correct && !ended && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="success">
