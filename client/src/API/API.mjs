@@ -83,7 +83,7 @@ export const getGame = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new Game(data.revealed, data.coins, data.vowelUsed, data.usedLetters, data.ended, data.win);
+    return new Game(data.revealed, data.coins, data.vowelUsed, data.usedLetters, data.film, data.ended, data.win);
 }
 
 export const guessPhrase = async (gameID, phrase) => {
@@ -97,7 +97,7 @@ export const guessPhrase = async (gameID, phrase) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new GameMessage(data.correct, data.coinUpdate, new Phrase(data.hiddenPhrase.text, data.hiddenPhrase.film));
+    return new GameMessage(data.correct, data.coinUpdate);
 }
 
 export const guessLetter = async (gameID, letter) => {
@@ -111,10 +111,7 @@ export const guessLetter = async (gameID, letter) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    if (data.hiddenPhrase) {
-        return new GameMessage(data.correct, data.coinUpdate, new Phrase(data.hiddenPhrase.text, data.hiddenPhrase.film));
-    }
-    return new GameMessage(data.correct, data.coinUpdate, null);
+    return new GameMessage(data.correct, data.coinUpdate);
 }
 
 export const expiredTime = async (gameID) => {
@@ -127,7 +124,17 @@ export const expiredTime = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new GameMessage(data.correct, data.coinUpdate, new Phrase(data.hiddenPhrase.text, data.hiddenPhrase.film));
+    return new GameMessage(data.correct, data.coinUpdate);
+}
+
+export const showFilm = async (gameID) => {
+    const response = await fetch(`${SERVER_URL}/api/game/${gameID}/showFilm`, {
+        method: 'PATCH',
+        credentials: 'include'
+    });
+    if (!response.ok) {
+        throw new Error ("Errore nel recupero del film");
+    }
 }
 
 export const deleteGame = async (gameID) => {

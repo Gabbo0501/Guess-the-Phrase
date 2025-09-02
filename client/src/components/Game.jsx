@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button, Badge, Container, Alert, Spinner, Card, Form, Row, Col, Modal } from "react-bootstrap";
-import { getLettersCost, getGame, guessLetter, guessPhrase, updateUserCoins, expiredTime } from "../API/API.mjs";
+import { getLettersCost, getGame, guessLetter, guessPhrase, updateUserCoins, expiredTime, showFilm } from "../API/API.mjs";
 
 export function LetterSelector(props) {
     const usedLetters = props.usedLetters;
@@ -127,22 +127,40 @@ function GameStatusBar(props) {
     const stop = props.stop;
     const setStop = props.setStop;
     const handleClick = props.handleClick;
+    const film = props.film;
+    const askForFilm = props.askForFilm;
 
     return (
-        <div className="d-flex justify-content-between align-items-start mb-4">
-            <div className="d-flex align-items-start gap-5">
-                <div className="d-flex flex-column align-items-start">
-                    <p className="righteous-font text-light fs-5 mb-1">Coins</p>
-                    <p className="righteous-font text-light fs-1 mt-0">{coins}</p>
+        <div className="container mb-4">
+            <div className="row align-items-start">
+                <div className="col-3">
+                    <div className="row">
+                        <div className="col-auto text-center px-3">
+                            <p className="righteous-font text-light fs-5 mb-0">Coins</p>
+                            <p className="righteous-font text-light fs-1 fixed-width">{coins}</p>
+                        </div>
+                        <div className="col-auto text-center px-3">
+                            <p className="righteous-font text-light fs-5 mb-0">Time</p>
+                            <Timer timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} ended={ended} />
+                        </div>
+                    </div>
                 </div>
-                <div className="d-flex flex-column align-items-start">
-                    <p className="righteous-font text-light fs-5 mb-1">Time</p>
-                    <Timer timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} ended={ended} />
+                <div className="col-6">
+                    {film ? (
+                        <p className="righteous-font text-light fs-5">Film: {film}</p>
+                    ) : (
+                        <Button className="mt-1 righteous-font d-inline-flex gap-2" variant="success" onClick={askForFilm}>
+                            Show the film:
+                            <Badge className="coin-badge">50</Badge>
+                        </Button>
+                    )}
+                </div>
+                <div className="col-3 text-end">
+                    <Button className="righteous-font mt-1" variant="danger" onClick={handleClick}>
+                        Exit
+                    </Button>
                 </div>
             </div>
-            <Button className="righteous-font" variant="danger" onClick={handleClick}>
-                Exit
-            </Button>
         </div>
     );
 }
@@ -154,15 +172,16 @@ export function EndGameModal(props) {
     const ended = props.ended;
     const runOutOfTime = props.runOutOfTime;
     const hiddenPhrase = props.hiddenPhrase;
+    const hiddenFilm = props.hiddenFilm;
     const loading = props.loading;
     const onError = props.onError;
     const handleClick = props.handleClick;
 
     return (
         <Modal show={ended} centered>
-            <Modal.Header className={game.win ? "bg-success justify-content-center" : "bg-red justify-content-center"}>
+            <Modal.Header className={win ? "bg-success justify-content-center" : "bg-red justify-content-center"}>
                 <Modal.Title className="righteous-font fs-1 text-white">
-                    { game.win ? "Winner!" : "Game Over!" }
+                    { win ? "Winner!" : "Game Over!" }
                 </Modal.Title>
             </Modal.Header>
             <Modal.Body className="d-flex flex-column align-items-center justify-content-center text-center">
@@ -181,8 +200,8 @@ export function EndGameModal(props) {
                 }
                 <p className="righteous-font-light">{"Balance: " + ((coins - 100) > 0 ? ("+" + (coins - 100)) : (coins - 100)) + " coins"}</p>
                 <p className="righteous-font fs-5">The phrase was:</p>
-                <p className="righteous-font fs-2">{hiddenPhrase.text}</p>
-                <p className="righteous-font fs-5">from the movie {hiddenPhrase.film}</p>
+                <p className="righteous-font fs-2">{hiddenPhrase}</p>
+                <p className="righteous-font fs-5">from the movie {hiddenFilm}</p>
                 <Button className="m-4 w-auto righteous-font" variant="secondary" onClick={handleClick} disabled={loading>0}>
                     {(loading>0) ? (
                         <Spinner animation="border" size="sm" role="status" aria-hidden="true"/>
@@ -215,7 +234,7 @@ export function Timer(props) {
     }, [stop, timeLeft, setTimeLeft, setStop]);
 
     return (
-        <p className="righteous-font text-light fs-1 mt-0">{timeLeft}</p>
+        <p className="righteous-font text-light fs-1 fixed-width">{timeLeft}</p>
     );
 }
 
@@ -234,7 +253,6 @@ export function GamePage(props) {
     const [correctHyp, setCorrectHyp] = useState(false);
     const [uncorrectHyp, setUncorrectHyp] = useState(false);
     const [ended, setEnded] = useState(false);
-    const [hiddenPhrase, setHiddenPhrase] = useState("");
     const [deltaCoins, setDeltaCoins] = useState(0);
     const [coinsUpdated, setCoinsUpdated] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60);
@@ -246,6 +264,7 @@ export function GamePage(props) {
     const fetchLetters = async () => {
         try {
             setLoading(prev => prev+1);
+            setError(null);
             setLetterCosts(await getLettersCost());
         } catch (error) {
             setError("Error in fetching letter costs");
@@ -276,6 +295,7 @@ export function GamePage(props) {
             setCorrectHyp(false);
             setUncorrectHyp(false);
             setLoading(prev => prev+1);
+            setError(null);
 
             const gameMessage = await guessPhrase(gameID, text);
             const updatedGame = await getGame(gameID);
@@ -285,7 +305,6 @@ export function GamePage(props) {
             setEnded(true);
             
             setDeltaCoins(gameMessage.coinUpdate);
-            setHiddenPhrase(gameMessage.hiddenPhrase);
         } catch (error) {
             setError("Error in guessing the phrase");
         } finally {
@@ -298,6 +317,7 @@ export function GamePage(props) {
             setCorrectHyp(false);
             setUncorrectHyp(false);
             setLoading(prev => prev+1);
+            setError(null);
 
             const gameMessage = await guessLetter(gameID, letter);
             const updatedGame = await getGame(gameID);
@@ -306,7 +326,6 @@ export function GamePage(props) {
             setDeltaCoins(gameMessage.coinUpdate);
             if (updatedGame.ended) {
                 setEnded(true);
-                setHiddenPhrase(gameMessage.hiddenPhrase);
             } else {
                 if (gameMessage.correct){
                     setCorrectHyp(true);
@@ -326,6 +345,7 @@ export function GamePage(props) {
             setCorrectHyp(false);
             setUncorrectHyp(false);
             setLoading(prev => prev+1);
+            setError(null);
             
             const gameMessage = await expiredTime(gameID);
             const updatedGame = await getGame(gameID);
@@ -335,9 +355,22 @@ export function GamePage(props) {
             setEnded(true);
 
             setDeltaCoins(gameMessage.coinUpdate);
-            setHiddenPhrase(gameMessage.hiddenPhrase);
         } catch (error) {
             setError("Error in running out of time");
+        } finally {
+            setLoading(prev => Math.max(0, prev-1));
+        }
+    };
+
+    const askForFilm = async () => {
+        try {
+            setLoading(prev => prev+1);
+            setError(null);
+            await showFilm(gameID);
+            const updatedGame = await getGame(gameID);
+            setGame(updatedGame);
+        } catch (error) {
+            setError("Error in fetching film");
         } finally {
             setLoading(prev => Math.max(0, prev-1));
         }
@@ -346,10 +379,10 @@ export function GamePage(props) {
     const updateUser = async (username, gameID) => {
         try {
             setLoading(prev => prev+1);
+            setError(null);
             await updateUserCoins(username, gameID);
         } catch (error) {
             setError("Error in updating user coins");
-            console.error(error);
         } finally {
             setLoading(prev => Math.max(0, prev-1));
         }
@@ -403,7 +436,7 @@ export function GamePage(props) {
 
     return (
         <Container className="mt-4 mb-4">
-            <EndGameModal coins={game.coins} deltaCoins={deltaCoins} win={game.win===1} ended={ended} runOutOfTime={runOutOfTime} hiddenPhrase={hiddenPhrase} loading={loading} onError={onError} handleClick={exitButtonAction}/>
+            <EndGameModal coins={game.coins} deltaCoins={deltaCoins} win={game.win===1} ended={ended} runOutOfTime={runOutOfTime} hiddenPhrase={game.revealed} hiddenFilm={game.film} loading={loading} onError={onError} handleClick={exitButtonAction}/>
             { onError && !ended && ( <Alert variant="warning">{onError}</Alert> ) }
             { correctHyp && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="success">
@@ -420,7 +453,7 @@ export function GamePage(props) {
             <Row className="justify-content-center">
                 <Col md={12}>
                     <Card className="bg-dark mb-4 pb-4 px-5 pt-4">
-                        <GameStatusBar ended={ended} coins={game.coins} timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} handleClick={exitButtonAction} />
+                        <GameStatusBar ended={ended} film={game.film} askForFilm={askForFilm} coins={game.coins} timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} handleClick={exitButtonAction} />
                         <PhraseViewer revealed={game.revealed} />
                     </Card>
                 </Col>

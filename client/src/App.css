@@ -107,7 +107,7 @@ html, body, #root {
   background: radial-gradient(circle at 30% 30%, #ffe066 70%, #ffc107 100%);
   color: #7a5a00;
   border-radius: 50%;
-  min-width: 25px;
+  width: 25px;
   height: 25px;
   display: flex;
   align-items: center;
@@ -133,6 +133,9 @@ html, body, #root {
   opacity: 0.85;
 }
 
+.fixed-width {
+  min-width: 2em;
+}
 
 
 /* =========================

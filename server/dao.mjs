@@ -73,17 +73,16 @@ export function getPhrase(id) {
     return new Promise((resolve, reject) => {
         db.get("SELECT * FROM Phrases WHERE id = ?", [id], (err, row) => {
             if (err) return reject(err);
-            resolve(new Phrase(row.text, row.film));
+            resolve(new Phrase(row.id, row.text, row.film));
         });
     });
 }
 
-export function createGame(game) {
+export function createGame(phraseID, username, revealed, coins, vowelUsed, usedLetters, showFilm, ended, win) {
     return new Promise((resolve, reject) => {
         db.run(
-            "INSERT INTO Games (phraseId, username, revealed, coins, vowelUsed, usedLetters, ended, win) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [game.phraseId, game.username, game.revealed, game.coins, game.vowelUsed, game.usedLetters, game.ended, game.win],
-            function(err) {
+            "INSERT INTO Games (phraseId, username, revealed, coins, vowelUsed, usedLetters, showFilm, ended, win) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [phraseID, username, revealed, coins, vowelUsed, usedLetters, showFilm, ended, win], function(err) {
                 if (err) return reject(err);
                 resolve(this.lastID);
             }
@@ -93,10 +92,10 @@ export function createGame(game) {
 
 export function getGame(id) {
     return new Promise((resolve, reject) => {
-        db.get("SELECT * FROM Games WHERE id = ?", [id], (err, row) => {
+        db.get("SELECT * FROM Games WHERE id = ?", [id], async (err, row) => {
             if (err) return reject(err);
             if (!row) return resolve(null);
-            resolve(new Game(row.phraseId, row.username, row.revealed, row.coins, row.vowelUsed, row.usedLetters, row.ended, row.win));
+            resolve(new Game(row.id, row.phraseId, row.username, row.revealed, row.coins, row.vowelUsed, row.usedLetters, row.showFilm, row.ended, row.win));
         });
     });
 }
@@ -104,9 +103,8 @@ export function getGame(id) {
 export function updateGame(id, game) {
     return new Promise((resolve, reject) => {
         db.run(
-            "UPDATE Games SET revealed = ?, coins = ?, vowelUsed = ?, usedLetters = ?, ended = ?, win = ? WHERE id = ?",
-            [game.revealed, game.coins, game.vowelUsed, game.usedLetters, game.ended, game.win, id],
-            function(err) {
+            "UPDATE Games SET revealed = ?, coins = ?, vowelUsed = ?, usedLetters = ?, showFilm=?, ended = ?, win = ? WHERE id = ?",
+            [game.revealed, game.coins, game.vowelUsed, game.usedLetters, game.showFilm, game.ended, game.win, id], function(err) {
                 if (err) return reject(err);
                 resolve();
             }

@@ -7,20 +7,23 @@ export class User {
 }
 
 export class Phrase {
-    constructor(text, film) {
+    constructor(id, text, film) {
+        this.id = id;
         this.text = text;
         this.film = film;
     }
 }
 
 export class Game {
-    constructor(phraseId, username, revealed, coins, vowelUsed, usedLetters, ended, win) {
+    constructor(id, phraseId, username, revealed, coins, vowelUsed, usedLetters, showFilm, ended, win) {
+        this.id = id;
         this.phraseId = phraseId;
         this.username = username;
         this.revealed = revealed;
         this.coins = coins;
         this.vowelUsed = vowelUsed;
         this.usedLetters = usedLetters;
+        this.showFilm = showFilm;
         this.ended = ended;
         this.win = win;
     }
@@ -30,13 +33,5 @@ export class Letter {
     constructor(letter, cost) {
         this.letter = letter;
         this.cost = cost;
-    }
-}
-
-export class GameMessage {
-    constructor(correct, coinUpdate, hiddenPhrase) {
-        this.correct = correct;
-        this.coinUpdate = coinUpdate;
-        this.hiddenPhrase = hiddenPhrase;
     }
 }

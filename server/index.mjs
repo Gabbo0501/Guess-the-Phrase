@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import passport from 'passport';
 import LocalStrategy from 'passport-local';
 import * as dao from './dao.mjs';
-import { Game, GameMessage, User } from './models.mjs'
 
 
 const app = express();
@@ -25,7 +24,7 @@ app.use(cors(corsOptions));
 passport.use(new LocalStrategy(async function verify(username, password, done) {
   const user = await dao.getUser(username, password);
   if (!user) return done(null, false, { message: 'Incorrect username or password' });
-  return done(null, new User(user.username, user.email, user.coins));
+  return done(null, user);
 }));
 
 passport.serializeUser((user, done) => {
@@ -134,10 +133,11 @@ app.post('/api/game', async (req, res) => {
     let revealed = phrase.text.replace(/[A-Z]/g, "_");
     let usedLetters = "";
     let vowelUsed = 0;
+    let showFilm = 0;
     let ended = 0;
+    let win = 0;
 
-    const game = new Game(phraseId, username, revealed, startingCoins, vowelUsed, usedLetters, ended);
-    const gameID = await dao.createGame(game);
+    const gameID = await dao.createGame(phraseId, username, revealed, startingCoins, vowelUsed, usedLetters, showFilm, ended, win);
     res.status(201).json(gameID);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -155,7 +155,25 @@ app.get('/api/game/:id', async (req, res) => {
     if (game.username !== username) {
       return res.status(403).json({ error: 'Not authorized to access this game' });
     }
-    res.json(game);
+
+    let film = null;
+    if (game.showFilm) {
+      const phrase = await dao.getPhrase(game.phraseId);
+      if (!phrase || !phrase.text) {
+        return res.status(404).json({ error: "Phrase not found" });
+      }
+      film = phrase.film;
+    }
+
+    res.json({
+      revealed: game.revealed,
+      coins: game.coins,
+      vowelUsed: game.vowelUsed,
+      usedLetters: game.usedLetters,
+      film: film,
+      ended: game.ended,
+      win: game.win
+    });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -181,17 +199,27 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
     }
 
     if (phrase.text.toUpperCase() === presumedPhrase.toUpperCase()) {
+      game.revealed = phrase.text;
+      game.showFilm = 1;
       game.ended = 1;
       game.win = 1;
       game.coins += 100;
       await dao.updateGame(gameID, game);
-      return res.json(new GameMessage(true, 100, phrase));
+      return res.json({
+        correct: true,
+        coinUpdate: 100
+      });
     }
     else {
+      game.revealed = phrase.text;
+      game.showFilm = 1;
       game.ended = 1;
       game.win = 0;
       await dao.updateGame(gameID, game);
-      return res.json(new GameMessage(false, 0, phrase));
+      return res.json({
+        correct: false,
+        coinUpdate: 0
+      });
     }
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -232,7 +260,6 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
 
     let correct = false;
     let coinUpdate = 0;
-    let hiddenPhrase = null;
 
     if (phrase.text.toUpperCase().includes(letter.toUpperCase())) {
       game.coins -= cost;
@@ -259,16 +286,18 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
 
     if (phrase.text.toUpperCase() === game.revealed.toUpperCase()) {
       game.ended = 1;
+      game.showFilm = 1;
       game.win = 1;
       game.coins += 100;
       coinUpdate += 100;
-      hiddenPhrase = phrase;
     }
 
     await dao.updateGame(gameID, game);
-    res.json(new GameMessage(correct, coinUpdate, hiddenPhrase));
+    res.json({
+      correct,
+      coinUpdate
+    });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -291,11 +320,37 @@ app.patch('/api/game/:id/expiredTime', async (req, res) => {
       return res.status(404).json({ error: "Phrase not found" });
     }
 
+    game.revealed = phrase.text;
+    game.showFilm = 1;
     game.coins -= 60;
     game.ended = 1;
     game.win = 0;
     await dao.updateGame(gameID, game);
-    res.json(new GameMessage(false, -60, phrase));
+    res.json({
+      correct: false,
+      coinUpdate: -60
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.patch('/api/game/:id/showFilm', async (req, res) => {
+  const gameID = req.params.id;
+  const username = req.user ? req.user.username : null;
+
+  try {
+    const game = await dao.getGame(gameID);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    if (game.username !== username) {
+      return res.status(403).json({ error: 'Not authorized to access this game' });
+    }
+    game.showFilm = 1;
+    game.coins -= 50;
+    await dao.updateGame(gameID, game);
+    res.status(204).end();
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
