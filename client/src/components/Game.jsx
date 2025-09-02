@@ -137,7 +137,7 @@ function GameStatusBar(props) {
                     <div className="row">
                         <div className="col-auto text-center px-3">
                             <p className="righteous-font text-light fs-5 mb-0">Coins</p>
-                            <p className="righteous-font text-light fs-1 fixed-width">{coins}</p>
+                            <p className="righteous-font text-light fs-1 fixed-width">{ended? "-" : coins}</p>
                         </div>
                         <div className="col-auto text-center px-3">
                             <p className="righteous-font text-light fs-5 mb-0">Time</p>
@@ -149,7 +149,7 @@ function GameStatusBar(props) {
                     {film ? (
                         <p className="righteous-font text-light fs-5">Film: {film}</p>
                     ) : (
-                        <Button className="mt-1 righteous-font d-inline-flex gap-2" variant="success" onClick={askForFilm}>
+                        <Button className="mt-1 righteous-font d-inline-flex gap-2" variant="success" onClick={askForFilm} disabled={coins<50}>
                             Show the film:
                             <Badge className="coin-badge">50</Badge>
                         </Button>
