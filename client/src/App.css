@@ -15,13 +15,6 @@ html, body, #root {
   height: 100%;
 }
 
-.App {
-  height: 100%;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);
@@ -43,18 +36,35 @@ html, body, #root {
   Struttura Base
 ========================= */
 
+.App {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  display: flex;
+  height: 100%;
+}
+
+.outlet-container {
+  flex: 1 0 auto;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: white;
+}
+
 .page-center {
-  min-height: 80.5vh;
+  flex: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-}
-
-.outlet-container{
-  flex: 1;
-  background: #fff;
-  min-height: 100%;
+  box-sizing: border-box;
 }
 
 .auth-form {

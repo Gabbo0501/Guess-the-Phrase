@@ -19,7 +19,7 @@ function Layout(props) {
     return (
         <>
             <NavbarCustom gameID={gameID} quitGame={quitGame}/>
-            <div style={{ display: 'flex'}}>
+            <div className='main'>
                 <FilmBar />
                 <div className='outlet-container'>
                     <Outlet />
