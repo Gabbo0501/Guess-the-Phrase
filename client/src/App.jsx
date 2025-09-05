@@ -115,7 +115,7 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<Layout gameID={gameID} quitGame={quitGame}/>}>
+        <Route path="/" element={<Layout gameID={gameID} quitGame={quitGame} isGamePage={false}/>}>
           <Route index element={<HomePage
             user={user}
             onError={onError}
