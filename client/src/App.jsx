@@ -4,7 +4,7 @@ import './App.css'
 
 import { useEffect, useState } from 'react';
 import { Route, Routes, useNavigate } from 'react-router';
-import { login, getUserInfo, logOut, createGame, deleteGame } from './API/API.mjs';
+import { login, getUserInfo, logOut, createGame, deleteGame, getUserCoins } from './API/API.mjs';
 
 import { Layout } from './components/Layout.jsx';
 import { HomePage } from './components/Home.jsx';
@@ -17,6 +17,7 @@ function App() {
 
   const [gameID, setGameID] = useState(null);
   const [user, setUser] = useState(null);
+  const [coins, setCoins] = useState(0);
   const [loading, setLoading] = useState(0);
   const [onError, setError] = useState(null);
 
@@ -89,9 +90,27 @@ function App() {
     }
   };
 
+  const getCoins = async (username) => {
+    try {
+      setLoading(prev => prev+1);
+      const coins = await getUserCoins(username);
+      setCoins(coins);
+    } catch (error) {
+      setError("Error in fetching coins");
+    } finally {
+      setLoading(prev => Math.max(0, prev-1));
+    }
+  };
+
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      getCoins(user.username);
+    }
+  }, [user]);
 
   return (
     <div className="App">
@@ -103,6 +122,7 @@ function App() {
             loading={loading}
             handleLogout={handleLogout}
             startGame={startGame}
+            coins={coins}
           />} />
           <Route path="game" element={<GamePage
               user={user}
@@ -112,7 +132,8 @@ function App() {
               onError={onError}
               setError={setError}
               quitGame={quitGame}
-              checkAuth={checkAuth}
+              coins={coins}
+              setCoins={setCoins}
           />} />
           <Route path="login" element={<LoginPage user={user} handleLogin={handleLogin}/>} />
           <Route path="*" element={<NotFound />} />

@@ -71,6 +71,22 @@ app.delete('/api/session/current', (req, res) => {
   });
 });
 
+app.get('/api/user/:id/coins', isLoggedIn, async (req, res) => {
+  const username = req.params.id;
+  if (req.user.username !== username) {
+    return res.status(403).json({ error: 'Not authorized to access this user' });
+  }
+  try {
+    const coins = await dao.getUserCoins(username);
+    if (coins === undefined || coins === null) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(coins);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/api/letters', async (req, res) => {
   try {
     const letters = await dao.getAllLetters();
@@ -79,35 +95,6 @@ app.get('/api/letters', async (req, res) => {
       letterCosts[item.letter] = item.cost;
     });
     res.json(letterCosts);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.patch('/api/user/:id', isLoggedIn, async (req, res) => {
-  const username = req.params.id;
-  const gameID = req.body.gameID;
-
-  try {
-    let userCoins = await dao.getUserCoins(username);
-    if (userCoins === undefined || userCoins === null) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    const game = await dao.getGame(gameID);
-    if (!game) {
-      return res.status(404).json({ error: 'Game not found' });
-    }
-    if (game.username != username) {
-      return res.status(403).json({ error: 'Not authorized to update this game' });
-    }
-
-    if (game.coins === 100) return res.status(200).end();
-    userCoins = userCoins + game.coins - 100;
-    if (userCoins < 0) userCoins = 0;
-    await dao.updateUserCoins(username, userCoins);
-    req.user.coins = userCoins;
-
-    res.status(200).end();
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -124,20 +111,15 @@ app.post('/api/game', async (req, res) => {
       return res.status(404).json({ error: "Phrase not found" });
     }
 
-    let startingCoins = 100;
-    if (username) {
-      const userCoins = await dao.getUserCoins(username);
-      startingCoins = userCoins < 100 ? userCoins : 100;
-    }
-
     let revealed = phrase.text.replace(/[A-Z]/g, "_");
+    let gameCoins = 0;
     let usedLetters = "";
     let vowelUsed = 0;
     let showFilm = 0;
     let ended = 0;
     let win = 0;
 
-    const gameID = await dao.createGame(phraseId, username, revealed, startingCoins, vowelUsed, usedLetters, showFilm, ended, win);
+    const gameID = await dao.createGame(phraseId, username, revealed, vowelUsed, usedLetters, showFilm, gameCoins, ended, win);
     res.status(201).json(gameID);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -167,10 +149,10 @@ app.get('/api/game/:id', async (req, res) => {
 
     res.json({
       revealed: game.revealed,
-      coins: game.coins,
       vowelUsed: game.vowelUsed,
       usedLetters: game.usedLetters,
       film: film,
+      gameCoins: game.gameCoins,
       ended: game.ended,
       win: game.win
     });
@@ -198,16 +180,29 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
       return res.status(404).json({ error: "Phrase not found" });
     }
 
+    let userCoins = 0;
+    if (username) userCoins = await dao.getUserCoins(username);
+    if (userCoins === undefined || userCoins === null) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    let coinUpdate = 0;
+
     if (phrase.text.toUpperCase() === presumedPhrase.toUpperCase()) {
       game.revealed = phrase.text;
       game.showFilm = 1;
       game.ended = 1;
       game.win = 1;
-      game.coins += 100;
+      if (username) {
+        coinUpdate += 100;
+        game.gameCoins += 100;
+        userCoins += 100;
+        await dao.updateUserCoins(username, userCoins < 0? 0 : userCoins);
+      }
       await dao.updateGame(gameID, game);
       return res.json({
         correct: true,
-        coinUpdate: 100
+        coinUpdate
       });
     }
     else {
@@ -218,7 +213,7 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
       await dao.updateGame(gameID, game);
       return res.json({
         correct: false,
-        coinUpdate: 0
+        coinUpdate
       });
     }
   } catch (error) {
@@ -245,8 +240,14 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
       return res.status(404).json({ error: "Phrase not found" });
     }
 
+    let userCoins = 0;
+    if (username) userCoins = await dao.getUserCoins(username);
+    if (userCoins === undefined || userCoins === null) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     const cost = await dao.getLetterCost(letter);
-    if (game.coins < cost) {
+    if (username && userCoins < cost) {
       return res.status(400).json({ error: 'Not enough coins' });
     }
     if (game.usedLetters.includes(letter)) {
@@ -262,9 +263,8 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
     let coinUpdate = 0;
 
     if (phrase.text.toUpperCase().includes(letter.toUpperCase())) {
-      game.coins -= cost;
       correct = true;
-      coinUpdate -= cost;
+      if (username) coinUpdate -= cost;
 
       const positions = [];
       for (let i = 0; i < phrase.text.length; i++) {
@@ -279,17 +279,21 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
       game.revealed = revealedArr.join('');
 
     } else {
-      game.coins -= cost*2;
       correct = false;
-      coinUpdate -= cost*2;
+      if (username) coinUpdate -= cost * 2;
     }
 
     if (phrase.text.toUpperCase() === game.revealed.toUpperCase()) {
       game.ended = 1;
       game.showFilm = 1;
       game.win = 1;
-      game.coins += 100;
-      coinUpdate += 100;
+      if (username) coinUpdate += 100;
+    }
+
+    if (username) {
+      game.gameCoins += coinUpdate;
+      userCoins += coinUpdate;
+      await dao.updateUserCoins(username, userCoins < 0? 0 : userCoins);
     }
 
     await dao.updateGame(gameID, game);
@@ -298,6 +302,7 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
       coinUpdate
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -320,15 +325,30 @@ app.patch('/api/game/:id/expiredTime', async (req, res) => {
       return res.status(404).json({ error: "Phrase not found" });
     }
 
+    let userCoins = 0;
+    if (username) userCoins = await dao.getUserCoins(username);
+    if (userCoins === undefined || userCoins === null) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    let coinUpdate = 0; 
+
     game.revealed = phrase.text;
     game.showFilm = 1;
-    game.coins -= 60;
     game.ended = 1;
     game.win = 0;
+
+    if (username) {
+      game.gameCoins -= 20;
+      userCoins -= 20;
+      coinUpdate = -20;
+      await dao.updateUserCoins(username, userCoins < 0? 0 : userCoins);
+    }
+
     await dao.updateGame(gameID, game);
     res.json({
       correct: false,
-      coinUpdate: -60
+      coinUpdate
     });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -347,8 +367,21 @@ app.patch('/api/game/:id/showFilm', async (req, res) => {
     if (game.username !== username) {
       return res.status(403).json({ error: 'Not authorized to access this game' });
     }
+
+    let userCoins = 0;
+    if (username) userCoins = await dao.getUserCoins(username);
+    if (userCoins === undefined || userCoins === null) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     game.showFilm = 1;
-    game.coins -= 50;
+
+    if (username) {
+      game.gameCoins -= 20;
+      userCoins -= 20;
+      await dao.updateUserCoins(username, userCoins < 0? 0 : userCoins);
+    }
+
     await dao.updateGame(gameID, game);
     res.status(204).end();
   } catch (error) {

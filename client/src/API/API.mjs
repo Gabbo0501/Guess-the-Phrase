@@ -38,6 +38,18 @@ export const logOut = async() => {
     }
 }
 
+export const getUserCoins = async (username) => {
+    const response = await fetch(`${SERVER_URL}/api/user/${username}/coins`, {
+        method: 'GET',
+        credentials: 'include'
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error (data.error);
+    }
+    return data;
+}
+
 export const getLettersCost = async () => {
     const response = await fetch(`${SERVER_URL}/api/letters`, {
         method: 'GET',
@@ -48,18 +60,6 @@ export const getLettersCost = async () => {
         throw new Error (dictionary.error);
     }
     return dictionary;
-}
-
-export const updateUserCoins = async (username, gameID) => {
-    const response = await fetch(`${SERVER_URL}/api/user/${username}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gameID })
-    });
-    if (!response.ok) {
-        throw new Error("Errore nell'aggiornamento delle monete");
-    }
 }
 
 export const createGame = async () => {
@@ -83,7 +83,7 @@ export const getGame = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new Game(data.revealed, data.coins, data.vowelUsed, data.usedLetters, data.film, data.ended, data.win);
+    return new Game(data.revealed, data.vowelUsed, data.usedLetters, data.film, data.gameCoins, data.ended, data.win);
 }
 
 export const guessPhrase = async (gameID, phrase) => {

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button, Badge, Container, Alert, Spinner, Card, Form, Row, Col, Modal } from "react-bootstrap";
-import { getLettersCost, getGame, guessLetter, guessPhrase, updateUserCoins, expiredTime, showFilm } from "../API/API.mjs";
+import { getLettersCost, getGame, guessLetter, guessPhrase, expiredTime, showFilm, getUserCoins } from "../API/API.mjs";
 
 export function LetterSelector(props) {
+    const user = props.user;
     const usedLetters = props.usedLetters;
     const vowelUsed = props.vowelUsed;
     const coins = props.coins;
@@ -19,7 +20,7 @@ export function LetterSelector(props) {
             const isVowel = vowels.includes(letter);
             const isUsed = usedLetters.split("").includes(letter);
             const cannotUseVowel = isVowel && vowelUsed && !isUsed;
-            const notEnoughCoins = coins < cost*2 && !isUsed;
+            const notEnoughCoins = user!=null && coins < cost && !isUsed;
 
             let btnClass = "letter-btn";
             if (isUsed) btnClass += " used";
@@ -41,7 +42,7 @@ export function LetterSelector(props) {
                   onClick={async () => { await letterSubmit(letter); }}
                 >
                   <div className="righteous-font">{letter}</div>
-                  <Badge className="coin-badge">{cost}</Badge>
+                  {user && <Badge className="coin-badge">{cost}</Badge>}
                 </Button>
                 {isDisabled && <div className="custom-tooltip">{disableReason}</div>}
               </span>
@@ -120,6 +121,7 @@ function PhraseViewer(props) {
 }
 
 function GameStatusBar(props) {
+    const user = props.user;
     const coins = props.coins;
     const ended = props.ended;
     const timeLeft = props.timeLeft;
@@ -135,10 +137,11 @@ function GameStatusBar(props) {
             <div className="row align-items-start">
                 <div className="col-3">
                     <div className="row">
+                        {user && (
                         <div className="col-auto text-center px-3">
                             <p className="righteous-font text-light fs-5 mb-0">Coins</p>
-                            <p className="righteous-font text-light fs-1 fixed-width">{ended? "-" : coins}</p>
-                        </div>
+                            <p className="righteous-font text-light fs-1 fixed-width">{coins}</p>
+                        </div>)}
                         <div className="col-auto text-center px-3">
                             <p className="righteous-font text-light fs-5 mb-0">Time</p>
                             <Timer timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} ended={ended} />
@@ -149,9 +152,9 @@ function GameStatusBar(props) {
                     {film ? (
                         <p className="righteous-font text-light fs-5">Film: {film}</p>
                     ) : (
-                        <Button className="mt-1 righteous-font d-inline-flex gap-2" variant="success" onClick={askForFilm} disabled={coins<50}>
+                        <Button className="mt-1 righteous-font d-inline-flex gap-2" variant="success" onClick={askForFilm} disabled={user!=null &&coins<20}>
                             Show the film:
-                            <Badge className="coin-badge">50</Badge>
+                            {user && (<Badge className="coin-badge">20</Badge>)}
                         </Button>
                     )}
                 </div>
@@ -166,7 +169,8 @@ function GameStatusBar(props) {
 }
 
 export function EndGameModal(props) {
-    const coins = props.coins;
+    const user = props.user;
+    const balance = props.balance;
     const deltaCoins = props.deltaCoins;
     const win = props.win;
     const ended = props.ended;
@@ -186,19 +190,25 @@ export function EndGameModal(props) {
             </Modal.Header>
             <Modal.Body className="d-flex flex-column align-items-center justify-content-center text-center">
                 { onError && ( <Alert variant="warning">{onError}</Alert> ) }
-                { win && 
+                { win && user && (
                     <div className="d-flex align-items-center gap-2">
                         <p className="righteous-font fs-5 mb-0">You earned {Math.abs(deltaCoins)} coins!</p>
                         <div className="coin-badge"></div>
                     </div>
-                }
-                { runOutOfTime && 
+                )}
+                { runOutOfTime && (
                     <div className="d-flex align-items-center gap-2">
-                        <p className="righteous-font fs-5 mb-0">You run out of time! You spent {Math.abs(deltaCoins)} coins!</p>
-                        <div className="coin-badge"></div>
+                        {user? (
+                            <>
+                                <p className="righteous-font fs-5 mb-0">You run out of time! You spent {Math.abs(deltaCoins)} coins!</p>
+                                <div className="coin-badge"></div>
+                            </>
+                        ) : (
+                            <p className="righteous-font fs-5 mb-0">You run out of time!</p>
+                        )}
                     </div>
-                }
-                <p className="righteous-font-light">{"Balance: " + ((coins - 100) > 0 ? ("+" + (coins - 100)) : (coins - 100)) + " coins"}</p>
+                )}
+                {user && (<p className="righteous-font-light">{"Balance: " + (balance < 0 ? balance : "+" + balance) + " coins"}</p>)}
                 <p className="righteous-font fs-5">The phrase was:</p>
                 <p className="righteous-font fs-2">{hiddenPhrase}</p>
                 <p className="righteous-font fs-5">from the movie {hiddenFilm}</p>
@@ -246,7 +256,8 @@ export function GamePage(props) {
     const setLoading = props.setLoading;
     const loading = props.loading;
     const quitGame = props.quitGame;
-    const checkAuth = props.checkAuth;
+    const coins = props.coins;
+    const setCoins = props.setCoins;
 
     const [game, setGame] = useState(null);
     const [letterCosts, setLetterCosts] = useState([]);
@@ -254,7 +265,6 @@ export function GamePage(props) {
     const [uncorrectHyp, setUncorrectHyp] = useState(false);
     const [ended, setEnded] = useState(false);
     const [deltaCoins, setDeltaCoins] = useState(0);
-    const [coinsUpdated, setCoinsUpdated] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60);
     const [runOutOfTime, setRunOutOfTime] = useState(false);
     const [stop, setStop] = useState(false);
@@ -301,10 +311,13 @@ export function GamePage(props) {
             const updatedGame = await getGame(gameID);
             setGame(updatedGame);
 
+            if (user){
+                setCoins(await getUserCoins(user.username));
+                setDeltaCoins(gameMessage.coinUpdate);
+            }
+
             if (!updatedGame.ended) throw new Error("Game has not ended");
             setEnded(true);
-            
-            setDeltaCoins(gameMessage.coinUpdate);
         } catch (error) {
             setError("Error in guessing the phrase");
         } finally {
@@ -323,7 +336,11 @@ export function GamePage(props) {
             const updatedGame = await getGame(gameID);
             setGame(updatedGame);
 
-            setDeltaCoins(gameMessage.coinUpdate);
+            if (user){
+                setCoins(await getUserCoins(user.username));
+                setDeltaCoins(gameMessage.coinUpdate);
+            }
+
             if (updatedGame.ended) {
                 setEnded(true);
             } else {
@@ -350,11 +367,13 @@ export function GamePage(props) {
             const gameMessage = await expiredTime(gameID);
             const updatedGame = await getGame(gameID);
             setGame(updatedGame);
+            if (user){
+                setCoins(await getUserCoins(user.username));
+                setDeltaCoins(gameMessage.coinUpdate);
+            }
 
             if (!updatedGame.ended) throw new Error("Game has not ended");
             setEnded(true);
-
-            setDeltaCoins(gameMessage.coinUpdate);
         } catch (error) {
             setError("Error in running out of time");
         } finally {
@@ -364,25 +383,16 @@ export function GamePage(props) {
 
     const askForFilm = async () => {
         try {
+            setCorrectHyp(false);
+            setUncorrectHyp(false);
             setLoading(prev => prev+1);
             setError(null);
             await showFilm(gameID);
             const updatedGame = await getGame(gameID);
             setGame(updatedGame);
+            if (user) setCoins(await getUserCoins(user.username));
         } catch (error) {
             setError("Error in fetching film");
-        } finally {
-            setLoading(prev => Math.max(0, prev-1));
-        }
-    };
-
-    const updateUser = async (username, gameID) => {
-        try {
-            setLoading(prev => prev+1);
-            setError(null);
-            await updateUserCoins(username, gameID);
-        } catch (error) {
-            setError("Error in updating user coins");
         } finally {
             setLoading(prev => Math.max(0, prev-1));
         }
@@ -401,13 +411,6 @@ export function GamePage(props) {
     useEffect(() => {
         fetchLetters();
     }, []);
-
-    useEffect(() => {
-        if (ended && user && !coinsUpdated) {
-            updateUser(user.username, gameID).then(checkAuth);
-            setCoinsUpdated(true);
-        }
-    }, [ended, gameID]);
 
     useEffect(() => {
         if (stop && !runOutOfTime && !ended) {
@@ -436,31 +439,47 @@ export function GamePage(props) {
 
     return (
         <Container className="mt-4 mb-4">
-            <EndGameModal coins={game.coins} deltaCoins={deltaCoins} win={game.win===1} ended={ended} runOutOfTime={runOutOfTime} hiddenPhrase={game.revealed} hiddenFilm={game.film} loading={loading} onError={onError} handleClick={exitButtonAction}/>
+            <EndGameModal user={user} balance={game.gameCoins} deltaCoins={deltaCoins} win={game.win===1} ended={ended} runOutOfTime={runOutOfTime} hiddenPhrase={game.revealed} hiddenFilm={game.film} loading={loading} onError={onError} handleClick={exitButtonAction}/>
             { onError && !ended && ( <Alert variant="warning">{onError}</Alert> ) }
             { correctHyp && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="success">
-                    <p className="righteous-font mb-0">Correct! You spent {Math.abs(deltaCoins)} coins</p>
-                    <div className="coin-badge"></div>
+                    {user ? (
+                            <>
+                                <p className="righteous-font mb-0">
+                                    Correct! You spent {Math.abs(deltaCoins)} coins
+                                </p>
+                                <div className="coin-badge"></div>
+                            </>
+                        ) : (
+                            <p className="righteous-font mb-0">Correct!</p>
+                        )}
                 </Alert> 
             )}
             { uncorrectHyp && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="danger">
-                    <p className="righteous-font mb-0">Incorrect! You spent {Math.abs(deltaCoins)} coins</p>
-                    <div className="coin-badge"></div>
-                </Alert> 
+                    {user ? (
+                            <>
+                                <p className="righteous-font mb-0">
+                                    Incorrect! You spent {Math.abs(deltaCoins)} coins
+                                </p>
+                                <div className="coin-badge"></div>
+                            </>
+                        ) : (
+                            <p className="righteous-font mb-0">Incorrect!</p>
+                        )}
+                </Alert>
             )}
             <Row className="justify-content-center">
                 <Col md={12}>
                     <Card className="bg-dark mb-4 pb-4 px-5 pt-4">
-                        <GameStatusBar ended={ended} film={game.film} askForFilm={askForFilm} coins={game.coins} timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} handleClick={exitButtonAction} />
+                        <GameStatusBar user={user}ended={ended} film={game.film} askForFilm={askForFilm} coins={coins} timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} handleClick={exitButtonAction} />
                         <PhraseViewer revealed={game.revealed} />
                     </Card>
                 </Col>
             </Row>
             <Row className="justify-content-center">
                 <Col md={7} lg={7}>
-                    <LetterSelector usedLetters={game.usedLetters} vowelUsed={game.vowelUsed} coins={game.coins} letterCosts={letterCosts} letterSubmit={letterSubmit} />
+                    <LetterSelector user={user} usedLetters={game.usedLetters} vowelUsed={game.vowelUsed} coins={coins} letterCosts={letterCosts} letterSubmit={letterSubmit} />
                 </Col>
                 <Col md={5} lg={5}>
                     <GuessPhraseBox textSubmit={textSubmit} />

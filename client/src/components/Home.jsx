@@ -47,6 +47,7 @@ function HomePage(props) {
   const handleLogout = props.handleLogout;
   const startGame = props.startGame;
   const loading = props.loading;
+  const coins = props.coins;
 
   const navigate = useNavigate();
 
@@ -72,7 +73,7 @@ function HomePage(props) {
         <Row className="mb-4 justify-content-center align-items-center">
           <p className="righteous-font-light mb-0">Welcome <strong>{user.username}</strong>!</p>
           <div className="d-flex align-items-center justify-content-center gap-2">
-            <p className="righteous-font-light mb-0">You have <strong>{user.coins}</strong> coins</p>
+            <p className="righteous-font-light mb-0">You have <strong>{coins}</strong> coins</p>
             <div className="coin-badge"></div>
           </div>
         </Row>
