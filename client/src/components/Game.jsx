@@ -180,7 +180,6 @@ export function EndGameModal(props) {
     const loading = props.loading;
     const onError = props.onError;
     const handleClick = props.handleClick;
-    const presumedPhrase = props.presumedPhrase;
 
     return (
         <Modal show={ended} centered>
@@ -213,12 +212,6 @@ export function EndGameModal(props) {
                 <p className="righteous-font fs-5 mb-0 mt-2">The phrase was:</p>
                 <p className="righteous-font fs-2 mb-0">{hiddenPhrase}</p>
                 <p className="righteous-font fs-5">from the movie {hiddenFilm}</p>
-                { presumedPhrase && (
-                    <div>
-                        <p className="righteous-font mt-2 mb-0">Your guess was:</p>
-                        <p className="righteous-font">{presumedPhrase}</p>
-                    </div>
-                )}
                 <Button className="mt-2 mb-4 w-auto righteous-font" variant="secondary" onClick={handleClick} disabled={loading>0}>
                     {(loading>0) ? (
                         <Spinner animation="border" size="sm" role="status" aria-hidden="true"/>
@@ -273,7 +266,6 @@ export function GamePage(props) {
     const [uncorrectHyp, setUncorrectHyp] = useState(false);
     const [ended, setEnded] = useState(false);
     const [deltaCoins, setDeltaCoins] = useState(0);
-    const [presumedPhrase, setPresumedPhrase] = useState("");
     const [timeLeft, setTimeLeft] = useState(60);
     const [runOutOfTime, setRunOutOfTime] = useState(false);
     const [stop, setStop] = useState(false);
@@ -317,17 +309,21 @@ export function GamePage(props) {
             setError(null);
 
             const gameMessage = await guessPhrase(gameID, text);
-            const updatedGame = await getGame(gameID);
-            setGame(updatedGame);
-            setPresumedPhrase(gameMessage.presumedPhrase);
 
             if (user){
                 setCoins(await getUserCoins(user.username));
                 setDeltaCoins(gameMessage.coinUpdate);
             }
 
-            if (!updatedGame.ended) throw new Error("Game has not ended");
-            setEnded(true);
+            if (gameMessage.correct){
+                const updatedGame = await getGame(gameID);
+                setGame(updatedGame);
+                setCorrectHyp(true);
+                if (!updatedGame.ended) throw new Error("Game has not ended");
+                setEnded(true);
+            } else {
+                setUncorrectHyp(true);
+            }
         } catch (error) {
             setError("Error in guessing the phrase");
         } finally {
@@ -375,12 +371,14 @@ export function GamePage(props) {
             setError(null);
             
             const gameMessage = await expiredTime(gameID);
-            const updatedGame = await getGame(gameID);
-            setGame(updatedGame);
+
             if (user){
                 setCoins(await getUserCoins(user.username));
                 setDeltaCoins(gameMessage.coinUpdate);
             }
+
+            const updatedGame = await getGame(gameID);
+            setGame(updatedGame);
 
             if (!updatedGame.ended) throw new Error("Game has not ended");
             setEnded(true);
@@ -458,12 +456,12 @@ export function GamePage(props) {
         <Container className="mt-4 mb-4">
             <EndGameModal user={user} balance={game.gameCoins} deltaCoins={deltaCoins} win={game.win===1} ended={ended} 
                 runOutOfTime={runOutOfTime} hiddenPhrase={game.revealed} hiddenFilm={game.film} loading={loading} 
-                onError={onError} handleClick={exitButtonAction} presumedPhrase={presumedPhrase}
+                onError={onError} handleClick={exitButtonAction}
             />
             { onError && !ended && ( <Alert variant="warning">{onError}</Alert> ) }
             { correctHyp && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="success">
-                    {user ? (
+                    {deltaCoins ? (
                             <>
                                 <p className="righteous-font mb-0">
                                     Correct! You spent {Math.abs(deltaCoins)} coins
@@ -477,7 +475,7 @@ export function GamePage(props) {
             )}
             { uncorrectHyp && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="danger">
-                    {user ? (
+                    {deltaCoins ? (
                             <>
                                 <p className="righteous-font mb-0">
                                     Incorrect! You spent {Math.abs(deltaCoins)} coins

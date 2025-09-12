@@ -198,7 +198,7 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
 
     let coinUpdate = 0;
 
-    if (phrase.text.toUpperCase() === presumedPhrase.toUpperCase()) {
+    if (phrase.text.toUpperCase() === presumedPhrase.trim().toUpperCase()) {
       game.revealed = phrase.text;
       game.showFilm = 1;
       game.ended = 1;
@@ -216,15 +216,9 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
       });
     }
     else {
-      game.revealed = phrase.text;
-      game.showFilm = 1;
-      game.ended = 1;
-      game.win = 0;
-      await dao.updateGame(gameID, game);
       return res.json({
         correct: false,
-        coinUpdate,
-        presumedPhrase
+        coinUpdate
       });
     }
   } catch (error) {
