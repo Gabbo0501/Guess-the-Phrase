@@ -180,6 +180,7 @@ export function EndGameModal(props) {
     const loading = props.loading;
     const onError = props.onError;
     const handleClick = props.handleClick;
+    const presumedPhrase = props.presumedPhrase;
 
     return (
         <Modal show={ended} centered>
@@ -204,15 +205,21 @@ export function EndGameModal(props) {
                                 <div className="coin-badge"></div>
                             </>
                         ) : (
-                            <p className="righteous-font fs-5 mb-0">You run out of time!</p>
+                            <p className="righteous-font fs-5">You run out of time!</p>
                         )}
                     </div>
                 )}
                 {user && (<p className="righteous-font-light">{"Balance: " + (balance < 0 ? balance : "+" + balance) + " coins"}</p>)}
-                <p className="righteous-font fs-5">The phrase was:</p>
-                <p className="righteous-font fs-2">{hiddenPhrase}</p>
+                <p className="righteous-font fs-5 mb-0 mt-2">The phrase was:</p>
+                <p className="righteous-font fs-2 mb-0">{hiddenPhrase}</p>
                 <p className="righteous-font fs-5">from the movie {hiddenFilm}</p>
-                <Button className="m-4 w-auto righteous-font" variant="secondary" onClick={handleClick} disabled={loading>0}>
+                { presumedPhrase && (
+                    <div>
+                        <p className="righteous-font mt-2 mb-0">Your guess was:</p>
+                        <p className="righteous-font">{presumedPhrase}</p>
+                    </div>
+                )}
+                <Button className="mt-2 mb-4 w-auto righteous-font" variant="secondary" onClick={handleClick} disabled={loading>0}>
                     {(loading>0) ? (
                         <Spinner animation="border" size="sm" role="status" aria-hidden="true"/>
                     ) : (
@@ -258,6 +265,7 @@ export function GamePage(props) {
     const quitGame = props.quitGame;
     const coins = props.coins;
     const setCoins = props.setCoins;
+    const setIsGameActive = props.setIsGameActive;
 
     const [game, setGame] = useState(null);
     const [letterCosts, setLetterCosts] = useState([]);
@@ -265,6 +273,7 @@ export function GamePage(props) {
     const [uncorrectHyp, setUncorrectHyp] = useState(false);
     const [ended, setEnded] = useState(false);
     const [deltaCoins, setDeltaCoins] = useState(0);
+    const [presumedPhrase, setPresumedPhrase] = useState("");
     const [timeLeft, setTimeLeft] = useState(60);
     const [runOutOfTime, setRunOutOfTime] = useState(false);
     const [stop, setStop] = useState(false);
@@ -310,6 +319,7 @@ export function GamePage(props) {
             const gameMessage = await guessPhrase(gameID, text);
             const updatedGame = await getGame(gameID);
             setGame(updatedGame);
+            setPresumedPhrase(gameMessage.presumedPhrase);
 
             if (user){
                 setCoins(await getUserCoins(user.username));
@@ -399,10 +409,17 @@ export function GamePage(props) {
     };
 
     const exitButtonAction = async () => {
-        await quitGame(gameID);
+        await quitGame(gameID, game.ended);
         navigate("/");
     };
 
+    useEffect(() => {
+        if ((loading>0 && !ended) || (!game && !loading)) {
+            setIsGameActive(false);
+        } else {
+            setIsGameActive(true);
+        }
+    }, [loading, ended, game]);
 
     useEffect(() => {
         fetchGame(gameID);
@@ -439,7 +456,10 @@ export function GamePage(props) {
 
     return (
         <Container className="mt-4 mb-4">
-            <EndGameModal user={user} balance={game.gameCoins} deltaCoins={deltaCoins} win={game.win===1} ended={ended} runOutOfTime={runOutOfTime} hiddenPhrase={game.revealed} hiddenFilm={game.film} loading={loading} onError={onError} handleClick={exitButtonAction}/>
+            <EndGameModal user={user} balance={game.gameCoins} deltaCoins={deltaCoins} win={game.win===1} ended={ended} 
+                runOutOfTime={runOutOfTime} hiddenPhrase={game.revealed} hiddenFilm={game.film} loading={loading} 
+                onError={onError} handleClick={exitButtonAction} presumedPhrase={presumedPhrase}
+            />
             { onError && !ended && ( <Alert variant="warning">{onError}</Alert> ) }
             { correctHyp && ( 
                 <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="success">

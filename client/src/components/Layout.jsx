@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router';
+import { Outlet } from 'react-router';
 import { NavbarCustom } from './Navbar.jsx';
 import { Footer } from './Footer.jsx';
 
@@ -13,25 +13,23 @@ function FilmBar() {
 }
 
 function Layout(props) {
-    const gameID = props.gameID;
-    const quitGame = props.quitGame;
-    
-    const location = useLocation();
-    const isGamePage = location.pathname.startsWith('/game');
+  const gameID = props.gameID;
+  const quitGame = props.quitGame;
+  const isGameActive = props.isGameActive;
 
-    return (
-        <>
-            <NavbarCustom gameID={gameID} quitGame={quitGame}/>
-            <div className={`main${isGamePage ? ' gamepage-main' : ''}`}>
-                <FilmBar />
-                <div className='outlet-container'>
-                    <Outlet />
-                </div>
-                <FilmBar />
-            </div>
-            <Footer />
-        </>
-    )
+  return (
+    <>
+      <NavbarCustom gameID={gameID} quitGame={quitGame}/>
+      <div className={`main${isGameActive ? ' game-active' : ''}`}>
+        <FilmBar />
+        <div className='outlet-container'>
+          <Outlet />
+        </div>
+        <FilmBar />
+      </div>
+      <Footer />
+    </>
+  );
 }
 
 export { Layout }

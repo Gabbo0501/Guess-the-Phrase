@@ -1,9 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
 
-/* =========================
-  Default
-========================= */
-
 #root {
   width: 100%;
   margin: 0;
@@ -32,9 +28,7 @@ html, body, #root {
 
 
 
-/* =========================
-  Struttura Base
-========================= */
+
 
 .App {
   height: 100vh;
@@ -44,13 +38,9 @@ html, body, #root {
 
 .main {
   display: flex;
-}
-
-.main:not(.gamepage-main) {
   height: 100%;
 }
-
-.main.gamepage-main {
+.main.game-active {
   height: auto;
   min-height: unset;
 }
@@ -82,9 +72,7 @@ html, body, #root {
 
 
 
-/* =========================
-  Filmbar
-========================= */
+
 
 .filmbar {
   background: #212529;
@@ -108,9 +96,7 @@ html, body, #root {
 
 
 
-/* =========================
-  Attributi Generali
-========================= */
+
 
 .bg-red {
   background-color: #831e26;
@@ -156,9 +142,8 @@ html, body, #root {
 }
 
 
-/* =========================
-  LetterSelector
-========================= */
+
+
 
 .tastiera {
   display: flex;
@@ -166,7 +151,6 @@ html, body, #root {
   justify-content: center;
 }
 
-/* - Tooltip - */
 
 .tooltip-wrapper {
   position: relative;
@@ -209,7 +193,7 @@ html, body, #root {
   opacity: 1;
 }
 
-/* - Lettere - */
+
 
 .letter-btn {
   min-width: 70px;
@@ -249,9 +233,6 @@ html, body, #root {
 }
 
 
-/* =========================
-  PhraseViewer
-========================= */
 
 .phrase-viewer {
   display: flex;

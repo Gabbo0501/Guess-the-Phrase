@@ -48,10 +48,15 @@ function HomePage(props) {
   const startGame = props.startGame;
   const loading = props.loading;
   const coins = props.coins;
+  const setError = props.setError;
 
   const navigate = useNavigate();
 
   async function handleClick(){
+    if (user && coins <= 0){
+      setError("You don't have enough coins to start a new game!");
+      return;
+    }
     await startGame();
     navigate("/game");
   }

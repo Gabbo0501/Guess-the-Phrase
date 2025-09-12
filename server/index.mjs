@@ -105,6 +105,16 @@ app.post('/api/game', async (req, res) => {
     const logged = req.user ? 1 : 0;
     const username = req.user ? req.user.username : null;
 
+    if (username) {
+      const userCoins = await dao.getUserCoins(username);
+      if (userCoins === undefined || userCoins === null) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (userCoins <= 0) {
+        return res.status(400).json({ error: 'Not enough coins to start a new game' });
+      }
+    }
+
     const phraseId = await dao.getRandomPhrase(logged);
     const phrase = await dao.getPhrase(phraseId);
     if (!phrase || !phrase.text) {
@@ -213,7 +223,8 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
       await dao.updateGame(gameID, game);
       return res.json({
         correct: false,
-        coinUpdate
+        coinUpdate,
+        presumedPhrase
       });
     }
   } catch (error) {

@@ -18,9 +18,10 @@ export class Game {
 }
 
 export class GameMessage {
-    constructor(correct, coinUpdate) {
+    constructor(correct, coinUpdate, presumedPhrase) {
         this.correct = correct;
         this.coinUpdate = coinUpdate;
+        this.presumedPhrase = presumedPhrase;
     }
 }
 

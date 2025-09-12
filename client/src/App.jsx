@@ -20,6 +20,7 @@ function App() {
   const [coins, setCoins] = useState(0);
   const [loading, setLoading] = useState(0);
   const [onError, setError] = useState(null);
+  const [isGameActive, setIsGameActive] = useState(false);
 
   const navigate = useNavigate();
 
@@ -75,12 +76,12 @@ function App() {
     }
   };
 
-  const quitGame = async (gameID) => {
+  const quitGame = async (gameID, ended) => {
     if (gameID != null) {
       setLoading(prev => prev+1);
       setError(null);
       try {
-        await deleteGame(gameID);
+        if (!user || !ended) await deleteGame(gameID);
       } catch (error) {
         setError("Error in quitting the game");
       } finally {
@@ -115,10 +116,11 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<Layout gameID={gameID} quitGame={quitGame} isGamePage={false}/>}>
+        <Route path="/" element={<Layout gameID={gameID} quitGame={quitGame} isGameActive={isGameActive} />}>
           <Route index element={<HomePage
             user={user}
             onError={onError}
+            setError={setError}
             loading={loading}
             handleLogout={handleLogout}
             startGame={startGame}
@@ -134,6 +136,7 @@ function App() {
               quitGame={quitGame}
               coins={coins}
               setCoins={setCoins}
+              setIsGameActive={setIsGameActive}
           />} />
           <Route path="login" element={<LoginPage user={user} handleLogin={handleLogin}/>} />
           <Route path="*" element={<NotFound />} />
