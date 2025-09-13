@@ -65,13 +65,12 @@ export function LetterSelector(props) {
 
 function GuessPhraseBox(props) {
     const textSubmit = props.textSubmit;
-
-    const [text, setText] = useState("");
+    const text = props.text;
+    const setText = props.setText;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         await textSubmit(text);
-        setText("");
     };
 
     return (
@@ -269,6 +268,7 @@ export function GamePage(props) {
     const [timeLeft, setTimeLeft] = useState(60);
     const [runOutOfTime, setRunOutOfTime] = useState(false);
     const [stop, setStop] = useState(false);
+    const [text, setText] = useState("");
 
     const navigate = useNavigate();
 
@@ -458,49 +458,54 @@ export function GamePage(props) {
                 runOutOfTime={runOutOfTime} hiddenPhrase={game.revealed} hiddenFilm={game.film} loading={loading} 
                 onError={onError} handleClick={exitButtonAction}
             />
-            { onError && !ended && ( <Alert variant="warning">{onError}</Alert> ) }
-            { correctHyp && ( 
-                <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="success">
-                    {deltaCoins ? (
-                            <>
-                                <p className="righteous-font mb-0">
-                                    Correct! You spent {Math.abs(deltaCoins)} coins
-                                </p>
-                                <div className="coin-badge"></div>
-                            </>
-                        ) : (
-                            <p className="righteous-font mb-0">Correct!</p>
-                        )}
-                </Alert> 
-            )}
-            { uncorrectHyp && ( 
-                <Alert className="d-flex align-items-center justify-content-center gap-2 mb-3" variant="danger">
-                    {deltaCoins ? (
-                            <>
-                                <p className="righteous-font mb-0">
-                                    Incorrect! You spent {Math.abs(deltaCoins)} coins
-                                </p>
-                                <div className="coin-badge"></div>
-                            </>
-                        ) : (
-                            <p className="righteous-font mb-0">Incorrect!</p>
-                        )}
-                </Alert>
-            )}
-            <Row className="justify-content-center">
+            <Row className="justify-content-center mb-3">
                 <Col md={12}>
-                    <Card className="bg-dark mb-4 pb-4 px-5 pt-4">
+                    <Card className="bg-dark pb-4 px-5 pt-4">
                         <GameStatusBar user={user}ended={ended} film={game.film} askForFilm={askForFilm} coins={coins} timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} handleClick={exitButtonAction} />
                         <PhraseViewer revealed={game.revealed} />
                     </Card>
                 </Col>
             </Row>
-            <Row className="justify-content-center">
+            <div className="min-vh-3">
+                { onError && !ended && ( <Alert variant="warning m-0">{onError}</Alert> ) }
+                { correctHyp && !ended && ( 
+                    <Alert className="d-flex align-items-center justify-content-center gap-2  m-0" variant="success">
+                        {deltaCoins ? (
+                                <>
+                                    <p className="righteous-font mb-0">
+                                        Correct! You spent {Math.abs(deltaCoins)} coins
+                                    </p>
+                                    <div className="coin-badge"></div>
+                                </>
+                            ) : (
+                                <p className="righteous-font mb-0">Correct!</p>
+                            )}
+                    </Alert> 
+                )}
+                { uncorrectHyp && !ended && ( 
+                    <Alert className="d-flex align-items-center justify-content-center gap-2 m-0" variant="danger">
+                        {deltaCoins ? (
+                                <>
+                                    <p className="righteous-font mb-0">
+                                        Incorrect! You spent {Math.abs(deltaCoins)} coins
+                                    </p>
+                                    <div className="coin-badge"></div>
+                                </>
+                            ) : (
+                                <p className="righteous-font mb-0">Incorrect!</p>
+                            )}
+                    </Alert>
+                )}
+                { !onError && !correctHyp && !uncorrectHyp && !ended && (
+                    <Alert className="invisible m-0" variant="warning">placeholder</Alert>
+                )}
+            </div>
+            <Row className="justify-content-center mt-3">
                 <Col md={7} lg={7}>
                     <LetterSelector user={user} usedLetters={game.usedLetters} vowelUsed={game.vowelUsed} coins={coins} letterCosts={letterCosts} letterSubmit={letterSubmit} />
                 </Col>
                 <Col md={5} lg={5}>
-                    <GuessPhraseBox textSubmit={textSubmit} />
+                    <GuessPhraseBox text={text} setText={setText} textSubmit={textSubmit} />
                 </Col>
             </Row>
         </Container>
