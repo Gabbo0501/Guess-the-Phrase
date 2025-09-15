@@ -38,8 +38,8 @@ export const logOut = async() => {
     }
 }
 
-export const getUserCoins = async (username) => {
-    const response = await fetch(`${SERVER_URL}/api/user/${username}/coins`, {
+export const getUserCoins = async () => {
+    const response = await fetch(`${SERVER_URL}/api/user/coins`, {
         method: 'GET',
         credentials: 'include'
     });
@@ -83,7 +83,7 @@ export const getGame = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new Game(data.revealed, data.vowelUsed, data.usedLetters, data.film, data.gameCoins, data.ended, data.win);
+    return new Game(data.revealed, data.vowelUsed, data.usedLetters, data.film, data.gameCoins, data.ended, data.win, data.startTime);
 }
 
 export const guessPhrase = async (gameID, phrase) => {
@@ -97,7 +97,7 @@ export const guessPhrase = async (gameID, phrase) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new GameMessage(data.correct, data.coinUpdate);
+    return new GameMessage(data.correct, data.coinUpdate, data.totCoins);
 }
 
 export const guessLetter = async (gameID, letter) => {
@@ -111,7 +111,7 @@ export const guessLetter = async (gameID, letter) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new GameMessage(data.correct, data.coinUpdate);
+    return new GameMessage(data.correct, data.coinUpdate, data.totCoins);
 }
 
 export const expiredTime = async (gameID) => {
@@ -124,7 +124,7 @@ export const expiredTime = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new GameMessage(data.correct, data.coinUpdate);
+    return new GameMessage(false, data.coinUpdate, data.totCoins);
 }
 
 export const showFilm = async (gameID) => {

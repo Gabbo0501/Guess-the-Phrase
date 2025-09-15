@@ -78,11 +78,11 @@ export function getPhrase(id) {
     });
 }
 
-export function createGame(phraseID, username, revealed, vowelUsed, usedLetters, showFilm, gameCoins, ended, win) {
+export function createGame(phraseID, username, revealed, vowelUsed, usedLetters, showFilm, gameCoins, ended, win, startTime) {
     return new Promise((resolve, reject) => {
         db.run(
-            "INSERT INTO Games (phraseId, username, revealed, vowelUsed, usedLetters, showFilm, gameCoins, ended, win) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [phraseID, username, revealed, vowelUsed, usedLetters, showFilm, gameCoins, ended, win], function(err) {
+            "INSERT INTO Games (phraseId, username, revealed, vowelUsed, usedLetters, showFilm, gameCoins, ended, win, startTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [phraseID, username, revealed, vowelUsed, usedLetters, showFilm, gameCoins, ended, win, startTime], function(err) {
                 if (err) return reject(err);
                 resolve(this.lastID);
             }
@@ -95,7 +95,7 @@ export function getGame(id) {
         db.get("SELECT * FROM Games WHERE id = ?", [id], async (err, row) => {
             if (err) return reject(err);
             if (!row) return resolve(null);
-            resolve(new Game(row.id, row.phraseId, row.username, row.revealed, row.vowelUsed, row.usedLetters, row.showFilm, row.gameCoins, row.ended, row.win));
+            resolve(new Game(row.id, row.phraseId, row.username, row.revealed, row.vowelUsed, row.usedLetters, row.showFilm, row.gameCoins, row.ended, row.win, row.startTime));
         });
     });
 }

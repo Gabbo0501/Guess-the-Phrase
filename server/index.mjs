@@ -4,6 +4,7 @@ import session from 'express-session';
 import morgan from 'morgan';
 import passport from 'passport';
 import LocalStrategy from 'passport-local';
+import dayjs from 'dayjs';
 import * as dao from './dao.mjs';
 
 
@@ -71,11 +72,8 @@ app.delete('/api/session/current', (req, res) => {
   });
 });
 
-app.get('/api/user/:id/coins', isLoggedIn, async (req, res) => {
-  const username = req.params.id;
-  if (req.user.username !== username) {
-    return res.status(403).json({ error: 'Not authorized to access this user' });
-  }
+app.get('/api/user/coins', isLoggedIn, async (req, res) => {
+  const username = req.user.username;
   try {
     const coins = await dao.getUserCoins(username);
     if (coins === undefined || coins === null) {
@@ -121,6 +119,7 @@ app.post('/api/game', async (req, res) => {
       return res.status(404).json({ error: "Phrase not found" });
     }
 
+    let startTime = dayjs().toISOString();
     let revealed = phrase.text.replace(/[A-Z]/g, "_");
     let gameCoins = 0;
     let usedLetters = "";
@@ -129,7 +128,7 @@ app.post('/api/game', async (req, res) => {
     let ended = 0;
     let win = 0;
 
-    const gameID = await dao.createGame(phraseId, username, revealed, vowelUsed, usedLetters, showFilm, gameCoins, ended, win);
+    const gameID = await dao.createGame(phraseId, username, revealed, vowelUsed, usedLetters, showFilm, gameCoins, ended, win, startTime);
     res.status(201).json(gameID);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -146,6 +145,9 @@ app.get('/api/game/:id', async (req, res) => {
     }
     if (game.username !== username) {
       return res.status(403).json({ error: 'Not authorized to access this game' });
+    }
+    if (dayjs().diff(dayjs(game.startTime), 'second') > 60) {
+      return res.status(400).json({ error: 'Game time has expired' });
     }
 
     let film = null;
@@ -164,7 +166,8 @@ app.get('/api/game/:id', async (req, res) => {
       film: film,
       gameCoins: game.gameCoins,
       ended: game.ended,
-      win: game.win
+      win: game.win,
+      startTime: game.startTime
     });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -183,6 +186,9 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
     }
     if (game.username !== username) {
       return res.status(403).json({ error: 'Not authorized to access this game' });
+    }
+    if (dayjs().diff(dayjs(game.startTime), 'second') > 60) {
+      return res.status(400).json({ error: 'Game time has expired' });
     }
 
     const phrase = await dao.getPhrase(game.phraseId);
@@ -212,13 +218,15 @@ app.patch('/api/game/:id/guessPhrase', async (req, res) => {
       await dao.updateGame(gameID, game);
       return res.json({
         correct: true,
-        coinUpdate
+        coinUpdate,
+        totCoins: userCoins < 0? 0 : userCoins
       });
     }
     else {
       return res.json({
         correct: false,
-        coinUpdate
+        coinUpdate,
+        totCoins: userCoins < 0? 0 : userCoins
       });
     }
   } catch (error) {
@@ -238,6 +246,9 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
     }
     if (game.username !== username) {
       return res.status(403).json({ error: 'Not authorized to access this game' });
+    }
+    if (dayjs().diff(dayjs(game.startTime), 'second') > 60) {
+      return res.status(400).json({ error: 'Game time has expired' });
     }
 
     const phrase = await dao.getPhrase(game.phraseId);
@@ -304,10 +315,10 @@ app.patch('/api/game/:id/guessLetter', async (req, res) => {
     await dao.updateGame(gameID, game);
     res.json({
       correct,
-      coinUpdate
+      coinUpdate,
+      totCoins: userCoins < 0? 0 : userCoins
     });
   } catch (error) {
-    console.log(error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -352,8 +363,8 @@ app.patch('/api/game/:id/expiredTime', async (req, res) => {
 
     await dao.updateGame(gameID, game);
     res.json({
-      correct: false,
-      coinUpdate
+      coinUpdate,
+      totCoins: userCoins < 0? 0 : userCoins
     });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -372,6 +383,9 @@ app.patch('/api/game/:id/showFilm', async (req, res) => {
     if (game.username !== username) {
       return res.status(403).json({ error: 'Not authorized to access this game' });
     }
+    if (dayjs().diff(dayjs(game.startTime), 'second') > 60) {
+      return res.status(400).json({ error: 'Game time has expired' });
+    }
 
     let userCoins = 0;
     if (username) userCoins = await dao.getUserCoins(username);
@@ -388,7 +402,10 @@ app.patch('/api/game/:id/showFilm', async (req, res) => {
     }
 
     await dao.updateGame(gameID, game);
-    res.status(204).end();
+    res.json({
+      coinUpdate: -20,
+      totCoins: userCoins < 0? 0 : userCoins
+    });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }

@@ -41,11 +41,12 @@ function App() {
   const handleLogout = async () => {
     try {
       setLoading(prev => prev+1);
+      setError(null);
       await logOut();
       setUser(null);
-      navigate('/');
     }
     catch (error) {
+      setError("Error in logging out");
       throw error;
     } finally {
       setLoading(prev => Math.max(0, prev-1));
@@ -91,10 +92,10 @@ function App() {
     }
   };
 
-  const getCoins = async (username) => {
+  const getCoins = async () => {
     try {
       setLoading(prev => prev+1);
-      const coins = await getUserCoins(username);
+      const coins = await getUserCoins();
       setCoins(coins);
     } catch (error) {
       setError("Error in fetching coins");
@@ -109,7 +110,7 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      getCoins(user.username);
+      getCoins();
     }
   }, [user]);
 

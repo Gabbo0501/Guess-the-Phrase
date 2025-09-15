@@ -6,21 +6,23 @@ export class User {
 }
 
 export class Game {
-    constructor(revealed, vowelUsed, usedLetters, film, gameCoins, ended, win) {
+    constructor(revealed, vowelUsed, usedLetters, film, gameCoins, ended, win, startTime) {
         this.revealed = revealed;
         this.vowelUsed = vowelUsed;
         this.usedLetters = usedLetters;
         this.film = film;
         this.gameCoins = gameCoins;
+        this.startTime = startTime;
         this.ended = ended;
         this.win = win;
     }
 }
 
 export class GameMessage {
-    constructor(correct, coinUpdate) {
+    constructor(correct, coinUpdate, totCoins) {
         this.correct = correct;
         this.coinUpdate = coinUpdate;
+        this.totCoins = totCoins;
     }
 }
 

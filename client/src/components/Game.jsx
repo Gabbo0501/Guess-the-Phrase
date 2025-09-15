@@ -1,7 +1,8 @@
+import dayjs from "dayjs";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button, Badge, Container, Alert, Spinner, Card, Form, Row, Col, Modal } from "react-bootstrap";
-import { getLettersCost, getGame, guessLetter, guessPhrase, expiredTime, showFilm, getUserCoins } from "../API/API.mjs";
+import { getLettersCost, getGame, guessLetter, guessPhrase, expiredTime, showFilm } from "../API/API.mjs";
 
 export function LetterSelector(props) {
     const user = props.user;
@@ -123,13 +124,11 @@ function GameStatusBar(props) {
     const user = props.user;
     const coins = props.coins;
     const ended = props.ended;
-    const timeLeft = props.timeLeft;
-    const setTimeLeft = props.setTimeLeft;
-    const stop = props.stop;
-    const setStop = props.setStop;
     const handleClick = props.handleClick;
     const film = props.film;
     const askForFilm = props.askForFilm;
+    const startTime = props.startTime;
+    const onExpire = props.onExpire;
 
     return (
         <div className="container mb-4">
@@ -143,7 +142,7 @@ function GameStatusBar(props) {
                         </div>)}
                         <div className="col-auto text-center px-3">
                             <p className="righteous-font text-light fs-5 mb-0">Time</p>
-                            <Timer timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} ended={ended} />
+                            <Timer startTime={startTime} onExpire={onExpire} ended={ended} />
                         </div>
                     </div>
                 </div>
@@ -166,6 +165,36 @@ function GameStatusBar(props) {
         </div>
     );
 }
+
+export function Timer(props) {
+    const startTime = props.startTime;
+    const ended = props.ended;
+    const onExpire = props.onExpire;
+
+    const [timeLeft, setTimeLeft] = useState(60);
+
+    useEffect(() => {
+        let expired = false;
+        if (!startTime || ended) return;
+        const updateTimer = () => {
+            const secondsPassed = dayjs().diff(dayjs(startTime), 'second');
+            const left = Math.max(0, 60 - secondsPassed);
+            setTimeLeft(left);
+            if (left === 0 && !expired) {
+                expired = true;
+                onExpire();
+            }
+        };
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [startTime, ended, onExpire]);
+
+    return (
+        <p className="righteous-font text-light fs-1 fixed-width">{timeLeft}</p>
+    );
+}
+
 
 export function EndGameModal(props) {
     const user = props.user;
@@ -223,30 +252,6 @@ export function EndGameModal(props) {
     );
 }
 
-export function Timer(props) {
-    const timeLeft = props.timeLeft;
-    const setTimeLeft = props.setTimeLeft;
-    const stop = props.stop;
-    const setStop = props.setStop;
-    const ended = props.ended;
-
-    useEffect(() => {
-        if (stop || ended) return;
-        if (timeLeft <= 0) {
-            setStop(true);
-            return;
-        }
-        const interval = setInterval(() => {
-            setTimeLeft(prev => prev - 1);
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [stop, timeLeft, setTimeLeft, setStop]);
-
-    return (
-        <p className="righteous-font text-light fs-1 fixed-width">{timeLeft}</p>
-    );
-}
-
 export function GamePage(props) {
     const user = props.user;
     const gameID = props.gameID;
@@ -265,9 +270,7 @@ export function GamePage(props) {
     const [uncorrectHyp, setUncorrectHyp] = useState(false);
     const [ended, setEnded] = useState(false);
     const [deltaCoins, setDeltaCoins] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(60);
     const [runOutOfTime, setRunOutOfTime] = useState(false);
-    const [stop, setStop] = useState(false);
     const [text, setText] = useState("");
 
     const navigate = useNavigate();
@@ -289,7 +292,8 @@ export function GamePage(props) {
             setLoading(prev => prev+1);
             setError(null);
             if (gameID) {
-                setGame(await getGame(gameID));
+                const gameObj = await getGame(gameID);
+                setGame(gameObj);
             }
             else {
                 setGame(null);
@@ -311,7 +315,7 @@ export function GamePage(props) {
             const gameMessage = await guessPhrase(gameID, text);
 
             if (user){
-                setCoins(await getUserCoins(user.username));
+                setCoins(gameMessage.totCoins);
                 setDeltaCoins(gameMessage.coinUpdate);
             }
 
@@ -343,7 +347,7 @@ export function GamePage(props) {
             setGame(updatedGame);
 
             if (user){
-                setCoins(await getUserCoins(user.username));
+                setCoins(gameMessage.totCoins);
                 setDeltaCoins(gameMessage.coinUpdate);
             }
 
@@ -373,7 +377,7 @@ export function GamePage(props) {
             const gameMessage = await expiredTime(gameID);
 
             if (user){
-                setCoins(await getUserCoins(user.username));
+                setCoins(gameMessage.totCoins);
                 setDeltaCoins(gameMessage.coinUpdate);
             }
 
@@ -395,10 +399,16 @@ export function GamePage(props) {
             setUncorrectHyp(false);
             setLoading(prev => prev+1);
             setError(null);
-            await showFilm(gameID);
+
+            const gameMessage = await showFilm(gameID);
+
+            if (user){
+                setCoins(gameMessage.totCoins);
+                setDeltaCoins(gameMessage.coinUpdate);
+            }
+
             const updatedGame = await getGame(gameID);
             setGame(updatedGame);
-            if (user) setCoins(await getUserCoins(user.username));
         } catch (error) {
             setError("Error in fetching film");
         } finally {
@@ -409,6 +419,13 @@ export function GamePage(props) {
     const exitButtonAction = async () => {
         await quitGame(gameID, game.ended);
         navigate("/");
+    };
+
+    const onExpire = async () => {
+        if (!ended && !runOutOfTime) {
+            setRunOutOfTime(true);
+            await handleExpiredTime();
+        }
     };
 
     useEffect(() => {
@@ -426,13 +443,6 @@ export function GamePage(props) {
     useEffect(() => {
         fetchLetters();
     }, []);
-
-    useEffect(() => {
-        if (stop && !runOutOfTime && !ended) {
-            setRunOutOfTime(true);
-            handleExpiredTime();
-        }
-    }, [stop, runOutOfTime, ended]);
 
 
 
@@ -461,13 +471,30 @@ export function GamePage(props) {
             <Row className="justify-content-center mb-3">
                 <Col md={12}>
                     <Card className="bg-dark pb-4 px-5 pt-4">
-                        <GameStatusBar user={user}ended={ended} film={game.film} askForFilm={askForFilm} coins={coins} timeLeft={timeLeft} setTimeLeft={setTimeLeft} stop={stop} setStop={setStop} handleClick={exitButtonAction} />
+                        <GameStatusBar user={user} ended={ended} startTime={game.startTime? game.startTime : 0} 
+                            onExpire={onExpire} film={game.film} askForFilm={askForFilm} 
+                            coins={coins} handleClick={exitButtonAction} 
+                        />
                         <PhraseViewer revealed={game.revealed} />
                     </Card>
                 </Col>
             </Row>
             <div className="min-vh-3">
                 { onError && !ended && ( <Alert variant="warning m-0">{onError}</Alert> ) }
+                { game.film && !ended && !correctHyp && !uncorrectHyp && (
+                    <Alert className="d-flex align-items-center justify-content-center gap-2  m-0" variant="info">
+                        {deltaCoins ? (
+                                <>
+                                    <p className="righteous-font mb-0">
+                                        Film shown! You spent {Math.abs(deltaCoins)} coins
+                                    </p>
+                                    <div className="coin-badge"></div>
+                                </>
+                            ) : (
+                                <p className="righteous-font mb-0">Film shown!</p>
+                            )}
+                    </Alert> 
+                )}
                 { correctHyp && !ended && ( 
                     <Alert className="d-flex align-items-center justify-content-center gap-2  m-0" variant="success">
                         {deltaCoins ? (
@@ -495,9 +522,6 @@ export function GamePage(props) {
                                 <p className="righteous-font mb-0">Incorrect!</p>
                             )}
                     </Alert>
-                )}
-                { !onError && !correctHyp && !uncorrectHyp && !ended && (
-                    <Alert className="invisible m-0" variant="warning">placeholder</Alert>
                 )}
             </div>
             <Row className="justify-content-center mt-3">
