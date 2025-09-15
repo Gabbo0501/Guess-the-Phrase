@@ -84,7 +84,7 @@
 - **`LetterSelector`** (in `Game.jsx`): tastiera dove si selezionano le lettere. Visualizza i rispettivi costi e gestisce i click, le disattivazioni e i tooltip che spiegano perché una lettera non può più essere scelta.
 - **`GuessPhraseBox`** (in `Game.jsx`): area per inserire e inviare la frase completa.
 - **`EndGameModal`** (in `Game.jsx`): modale di riepilogo a fine partita.
-- - **`Timer`** (in `Game.jsx`): timer della partita
+- **`Timer`** (in `Game.jsx`): timer della partita
 - **`LoginPage` e `AuthForm`** (in `Login.jsx`): form di login.
 - **`NotFound`** (in `NotFound.jsx`): pagina per route non esistenti.
 - **`Footer`** (in `Footer.jsx`): footer con informazioni sull'autore.
