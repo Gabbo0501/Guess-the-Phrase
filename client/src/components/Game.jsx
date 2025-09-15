@@ -417,8 +417,10 @@ export function GamePage(props) {
     };
 
     const exitButtonAction = async () => {
-        await quitGame(gameID, game.ended);
-        navigate("/");
+        if (!loading) {
+            await quitGame(gameID);
+            navigate("/");
+        }
     };
 
     const onExpire = async () => {

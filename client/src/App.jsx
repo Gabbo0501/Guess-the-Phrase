@@ -77,12 +77,12 @@ function App() {
     }
   };
 
-  const quitGame = async (gameID, ended) => {
+  const quitGame = async (gameID) => {
     if (gameID != null) {
       setLoading(prev => prev+1);
       setError(null);
       try {
-        if (!user || !ended) await deleteGame(gameID);
+        if (!user) await deleteGame(gameID);
       } catch (error) {
         setError("Error in quitting the game");
       } finally {
@@ -117,7 +117,7 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<Layout gameID={gameID} quitGame={quitGame} isGameActive={isGameActive} />}>
+        <Route path="/" element={<Layout gameID={gameID} quitGame={quitGame} isGameActive={isGameActive} loading={loading} />}>
           <Route index element={<HomePage
             user={user}
             onError={onError}

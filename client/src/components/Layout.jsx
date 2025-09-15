@@ -16,10 +16,11 @@ function Layout(props) {
   const gameID = props.gameID;
   const quitGame = props.quitGame;
   const isGameActive = props.isGameActive;
+  const loading = props.loading;
 
   return (
     <>
-      <NavbarCustom gameID={gameID} quitGame={quitGame}/>
+      <NavbarCustom gameID={gameID} quitGame={quitGame} loading={loading} />
       <div className={`main${isGameActive ? ' game-active' : ''}`}>
         <FilmBar />
         <div className='outlet-container'>
