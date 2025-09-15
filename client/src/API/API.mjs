@@ -114,6 +114,18 @@ export const guessLetter = async (gameID, letter) => {
     return new GameMessage(data.correct, data.coinUpdate, data.totCoins);
 }
 
+export const showFilm = async (gameID) => {
+    const response = await fetch(`${SERVER_URL}/api/game/${gameID}/showFilm`, {
+        method: 'PATCH',
+        credentials: 'include'
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error (data.error);
+    }
+    return new GameMessage(null, data.coinUpdate, data.totCoins);
+}
+
 export const expiredTime = async (gameID) => {
     const response = await fetch(`${SERVER_URL}/api/game/${gameID}/expiredTime`, {
         method: 'PATCH',
@@ -124,17 +136,7 @@ export const expiredTime = async (gameID) => {
     if (!response.ok) {
         throw new Error (data.error);
     }
-    return new GameMessage(false, data.coinUpdate, data.totCoins);
-}
-
-export const showFilm = async (gameID) => {
-    const response = await fetch(`${SERVER_URL}/api/game/${gameID}/showFilm`, {
-        method: 'PATCH',
-        credentials: 'include'
-    });
-    if (!response.ok) {
-        throw new Error ("Errore nel recupero del film");
-    }
+    return new GameMessage(null, data.coinUpdate, data.totCoins);
 }
 
 export const deleteGame = async (gameID) => {

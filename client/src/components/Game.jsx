@@ -191,7 +191,7 @@ export function Timer(props) {
     }, [startTime, ended, onExpire]);
 
     return (
-        <p className="righteous-font text-light fs-1 fixed-width">{timeLeft}</p>
+        <p className="righteous-font text-light fs-1 fixed-width">{ended? "-" : timeLeft}</p>
     );
 }
 
@@ -367,6 +367,29 @@ export function GamePage(props) {
         }
     };
 
+    const askForFilm = async () => {
+        try {
+            setCorrectHyp(false);
+            setUncorrectHyp(false);
+            setLoading(prev => prev+1);
+            setError(null);
+
+            const gameMessage = await showFilm(gameID);
+
+            if (user){
+                setCoins(gameMessage.totCoins);
+                setDeltaCoins(gameMessage.coinUpdate);
+            }
+
+            const updatedGame = await getGame(gameID);
+            setGame(updatedGame);
+        } catch (error) {
+            setError("Error in fetching film");
+        } finally {
+            setLoading(prev => Math.max(0, prev-1));
+        }
+    };
+
     const handleExpiredTime = async() => {
         try {
             setCorrectHyp(false);
@@ -388,29 +411,6 @@ export function GamePage(props) {
             setEnded(true);
         } catch (error) {
             setError("Error in running out of time");
-        } finally {
-            setLoading(prev => Math.max(0, prev-1));
-        }
-    };
-
-    const askForFilm = async () => {
-        try {
-            setCorrectHyp(false);
-            setUncorrectHyp(false);
-            setLoading(prev => prev+1);
-            setError(null);
-
-            const gameMessage = await showFilm(gameID);
-
-            if (user){
-                setCoins(gameMessage.totCoins);
-                setDeltaCoins(gameMessage.coinUpdate);
-            }
-
-            const updatedGame = await getGame(gameID);
-            setGame(updatedGame);
-        } catch (error) {
-            setError("Error in fetching film");
         } finally {
             setLoading(prev => Math.max(0, prev-1));
         }
@@ -481,7 +481,7 @@ export function GamePage(props) {
             </Row>
             <div className="min-vh-3">
                 { onError && !ended && ( <Alert variant="warning m-0">{onError}</Alert> ) }
-                { game.film && !ended && !correctHyp && !uncorrectHyp && (
+                { game.film && !ended && !correctHyp && !uncorrectHyp && !onError && (
                     <Alert className="d-flex align-items-center justify-content-center gap-2  m-0" variant="info">
                         {deltaCoins ? (
                                 <>
@@ -495,7 +495,7 @@ export function GamePage(props) {
                             )}
                     </Alert> 
                 )}
-                { correctHyp && !ended && ( 
+                { correctHyp && !ended && !onError && ( 
                     <Alert className="d-flex align-items-center justify-content-center gap-2  m-0" variant="success">
                         {deltaCoins ? (
                                 <>
@@ -509,7 +509,7 @@ export function GamePage(props) {
                             )}
                     </Alert> 
                 )}
-                { uncorrectHyp && !ended && ( 
+                { uncorrectHyp && !ended && !onError && ( 
                     <Alert className="d-flex align-items-center justify-content-center gap-2 m-0" variant="danger">
                         {deltaCoins ? (
                                 <>
@@ -526,7 +526,9 @@ export function GamePage(props) {
             </div>
             <Row className="justify-content-center mt-3">
                 <Col md={7} lg={7}>
-                    <LetterSelector user={user} usedLetters={game.usedLetters} vowelUsed={game.vowelUsed} coins={coins} letterCosts={letterCosts} letterSubmit={letterSubmit} />
+                    <LetterSelector user={user} usedLetters={game.usedLetters} vowelUsed={game.vowelUsed} coins={coins} 
+                    letterCosts={letterCosts} letterSubmit={letterSubmit} 
+                />
                 </Col>
                 <Col md={5} lg={5}>
                     <GuessPhraseBox text={text} setText={setText} textSubmit={textSubmit} />
