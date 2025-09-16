@@ -68,6 +68,7 @@
   - `gameCoins`: bilancio delle monete guadagnate e perse nella partita. Vale sempre 0 nella versione demo.
   - `ended`: 0=partita non finita, 1=partita terminata
   - `win`: 0=partita non vinta, 1=partita vinta
+  - `startTime`: timestamp inizio partita, usato per il timer
 - **Table `Letters`**  
   - `letter` (chiave)
   - `cost`
