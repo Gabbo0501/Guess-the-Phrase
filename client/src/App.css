@@ -45,6 +45,13 @@ html, body, #root {
   min-height: unset;
 }
 
+@media (min-height: 950px) {
+  .main.game-active {
+    height: 100%;
+    min-height: unset;
+  }
+}
+
 .outlet-container {
   flex: 1 0 auto;
   min-height: 0;
