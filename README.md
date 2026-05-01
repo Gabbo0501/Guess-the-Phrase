@@ -1,103 +1,172 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/4NgFJDM8)
-# Exam #3: "Indovina la Frase"
-## Student: s349387 MONDINO GABRIELE 
+# Guess the Phrase
+
+A *Wheel of Fortune*-style game: you must guess a famous quote (movie quotes) within 60 seconds, by picking letters or by directly submitting the full phrase.
+
+- **Demo mode (not authenticated)**: no coin costs/earnings.
+- **Authenticated mode**: actions have coin costs/bonuses and are persisted in the DB.
+
+
+## Game Rules (summary)
+
+- **Time limit**: 60 seconds (based on `startTime` stored in the DB).
+- **Letters**:
+  - variable cost (table `Letters`)
+  - if the letter is present: in authenticated mode you pay **-cost**
+  - if the letter is not present: in authenticated mode you pay **-2*cost**
+  - a letter already used cannot be selected again
+  - **only one vowel per game** (vowels have cost 10)
+- **Guessing the full phrase**:
+  - if correct: the game ends and the movie title becomes visible
+  - in authenticated mode: **+100** coins
+- **Show movie title**:
+  - in authenticated mode costs **-20** coins
+- **Time expired**:
+  - the phrase is revealed and the game is lost
+  - in authenticated mode costs **-20** coins
+- **Starting a new game** (authenticated user): not allowed if the user's coins are `<= 0`.
+
+
+## Running (development)
+
+### Requirements
+
+- Node.js (recommended >= 18)
+- npm
+
+
+### API Server (Express)
+
+```bash
+cd server
+npm install
+node index.mjs
+```
+
+`http://localhost:3001`
+
+### Client (React + Vite)
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+`http://localhost:5173`
 
 
 ## React Client Application Routes
 
-- **Route `/`** - ***Home page***: permette di avviare una nuova partita (modalità demo o autenticata) e di accedere al login/logout.
-- **Route `/login`** - ***Login page***: form di autenticazione utente.
-- **Route `/game`** - ***Game page***: mostra la griglia della frase da indovinare, il timer, la tastiera per scegliere le lettere, l’area per inserire la frase, il saldo delle monete e tutte le azioni di gioco.
-- **Route `*`** - ***Not Found***: pagina di errore per route non esistenti.
+- **Route `/`** - *Home page*: allows starting a new game (demo or authenticated) and accessing login/logout.
+- **Route `/login`** - *Login page*: user authentication form.
+- **Route `/game`** - *Game page*: shows the phrase grid, the timer, the on-screen keyboard, the phrase input box, and all game actions.
+- **Route `*`** - *Not Found*: error page for non-existing routes.
 
 
 ## API Server
 
-- **POST `/api/sessions`**  
-  - Login utente.
-- **DELETE `/api/sessions/current`**  
-  - Logout utente.
-- **GET `/api/sessions/current`**  
-  - **Risposta:** dati utente autenticato (se presente).
-- **GET `/api/user/coins`**  
-  - **Risposta:** saldo monete utente.
-- **POST `/api/game`**  
-  - Crea una nuova partita
-  - **Risposta:** id partita creata.
-- **GET `/api/game/:id`**  
-  - **Risposta:** stato partita (frase mascherata, lettere usate, ecc.).
-- **PATCH `/api/game/:id/guessLetter`**  
-  - Gestisce il tentativo di indovinare una lettera, verificando la correttezza della lettera e aggiornando la partita
-  - **Body:** `{ letter }`  
-  - **Risposta:** esito tentativo, variazione di monete, bilancio totale monete.
+### Session
+
+- **POST `/api/session`**
+  - User login (Passport Local)
+  - Body: `{ "username": "...", "password": "..." }`
+  - Response: authenticated user
+- **GET `/api/session/current`**
+  - Response: authenticated user (if present)
+- **DELETE `/api/session/current`**
+  - User logout
+
+### User
+
+- **GET `/api/user/coins`** (requires login)
+  - Response: user's coin balance
+
+### Game
+
+- **GET `/api/letters`**
+  - Response: dictionary `{ letter: cost }`
+
+- **POST `/api/game`**
+  - Creates a new game (demo or authenticated)
+  - Response: created game id
+
+- **GET `/api/game/:id`**
+  - Response: game state (masked phrase, used letters, movie title if unlocked, etc.)
+
+- **PATCH `/api/game/:id/guessLetter`**
+  - Body: `{ "letter": "A" }`
+  - Response: attempt outcome, coin delta, total coins
+
 - **PATCH `/api/game/:id/guessPhrase`**
-  - Gestisce il tentativo di indovinare la frase, verificando la correttezza della frase e aggiornando la partita
-  - **Body:** `{ phrase }`  
-  - **Risposta:** esito tentativo, variazione di monete, bilancio totale monete.
-- **PATCH `/api/game/:id/expiredTime`**  
-  - Gestisce la scadenza del tempo di gioco e aggiorna la partita
-  - **Risposta:** variazione di monete, bilancio totale monete.
-- **PATCH `/api/game/:id/showFilm`**  
-  - Gestisce la richiesta di visualizzare il nome del film e aggiorna la partita  
-  - **Risposta:** variazione di monete, bilancio totale monete.
-- **DELETE `/api/game/:id`**  
-  - Elimina la partita.
+  - Body: `{ "phrase": "..." }`
+  - Response: attempt outcome, coin delta, total coins
+
+- **PATCH `/api/game/:id/showFilm`**
+  - Unlocks the movie title
+  - Response: coin delta, total coins
+
+- **PATCH `/api/game/:id/expiredTime`**
+  - Marks the game as expired
+  - Response: coin delta, total coins
+
+- **DELETE `/api/game/:id`**
+  - Deletes the game
 
 
 ## Database Tables
 
-- **Table `Users`**  
-  - `username` (chiave)
-  - `password`: password hashed
+- **Table `Users`**
+  - `username` (primary key)
+  - `password`: hashed password
   - `salt`
   - `email`
   - `coins`
-- **Table `Phrases`**  
-  - `id` (chiave)
+
+- **Table `Phrases`**
+  - `id` (primary key)
   - `text`
   - `film`
-  - `logged`: 0=demo, 1=autenticato
-- **Table `Games`**  
-  - `id` (chiave)
+  - `logged`: `0` = demo, `1` = authenticated
+
+- **Table `Games`**
+  - `id` (primary key)
   - `phraseId`
-  - `username`: vale null nella versione demo
-  - `revealed`: maschera della frase, dove le lettere non ancora scoperte sono sostituite con _
-  - `vowelUsed`: 0=non è stata ancora usata una vocale, 1=vocale già usata
-  - `usedLetters`: lettere già utilizzate (sia sbagliate che corrette)
-  - `showFilm`: 0=non mostrare il titolo del film all'utente, 1=mostralo
-  - `gameCoins`: bilancio delle monete guadagnate e perse nella partita. Vale sempre 0 nella versione demo.
-  - `ended`: 0=partita non finita, 1=partita terminata
-  - `win`: 0=partita non vinta, 1=partita vinta
-  - `startTime`: timestamp inizio partita, usato per il timer
-- **Table `Letters`**  
-  - `letter` (chiave)
+  - `username`: is `null` in demo mode
+  - `revealed`: phrase mask, where unrevealed letters are replaced with `_`
+  - `vowelUsed`: `0` = no vowel used yet, `1` = vowel already used
+  - `usedLetters`: already used letters (both wrong and correct)
+  - `showFilm`: `0` = do not show the movie title, `1` = show it
+  - `gameCoins`: balance of coins earned/spent in the game (always `0` in demo mode)
+  - `ended`: `0` = game not finished, `1` = game finished
+  - `win`: `0` = game not won, `1` = game won
+  - `startTime`: game start timestamp (used by the timer)
+
+- **Table `Letters`**
+  - `letter` (primary key)
   - `cost`
 
 
 ## Main React Components
 
-- **`Layout`** (in `Layout.jsx`): struttura comune (navbar, footer, bande laterali con motivo a pellicola).
-- **`NavbarCustom`** (in `Navbar.jsx`): navbar con l'icona del gioco, che riporta alla home. Se premuta durante il gioco, funziona come tasto di uscita.
-- **`HomePage`** (in `Home.jsx`): schermata iniziale con pulsanti per avviare una partita e per login/logout.
-- **`GamePage`** (in `Game.jsx`): logica e UI della partita.
-- **`GameStatusBar`** (in `Game.jsx`): mostra monete, tempo, il pulsante exit, il pulsante per visualizzare il titolo del film e, una volta premuto quest'ultimo, il titolo del film stesso.
-- **`PhraseViewer`** (in `Game.jsx`): griglia che visualizza la frase mascherata e le lettere indovinate.
-- **`LetterSelector`** (in `Game.jsx`): tastiera dove si selezionano le lettere. Visualizza i rispettivi costi e gestisce i click, le disattivazioni e i tooltip che spiegano perché una lettera non può più essere scelta.
-- **`GuessPhraseBox`** (in `Game.jsx`): area per inserire e inviare la frase completa.
-- **`EndGameModal`** (in `Game.jsx`): modale di riepilogo a fine partita.
-- **`Timer`** (in `Game.jsx`): timer della partita
-- **`LoginPage` e `AuthForm`** (in `Login.jsx`): form di login.
-- **`NotFound`** (in `NotFound.jsx`): pagina per route non esistenti.
-- **`Footer`** (in `Footer.jsx`): footer con informazioni sull'autore.
-
-
-## Screenshot
-
-![Screenshot](./img/screenshot.png)
+- **`Layout`**: common layout (navbar, footer, side bands with film-strip pattern).
+- **`NavbarCustom`**: navbar with the game icon; when pressed during a game it acts as an exit button.
+- **`HomePage`**: landing page with buttons to start a game and login/logout.
+- **`GamePage`**: game logic and UI.
+- **`GameStatusBar`**: coins, time, exit, show-movie button (and the movie title when unlocked).
+- **`PhraseViewer`**: grid that displays the masked phrase and revealed letters.
+- **`LetterSelector`**: keyboard to pick letters (costs, disabled states, tooltips).
+- **`GuessPhraseBox`**: area to type and submit the full phrase.
+- **`EndGameModal`**: summary modal shown at the end of the game.
+- **`Timer`**: game timer.
+- **`LoginPage` / `AuthForm`**: login form.
+- **`NotFound`**: page for non-existing routes.
+- **`Footer`**: footer with author information.
 
 
 ## Users Credentials
 
-- **gabrimondo / Gabbo05012002**: utente con partite e con monete
-- **prof1234 / Ciao1234**: utente senza partite
-- **iacopom / 27Ottobre**: utente con partite e senza monete
+Users included in the DB (`server/database.sqlite`).
+
+- **gabrimondo / Gabbo05012002**: user with games and coins
+- **prof1234 / Ciao1234**: user without games
+- **iacopom / 27Ottobre**: user with games and zero coins
